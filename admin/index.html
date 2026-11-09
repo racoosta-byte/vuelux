@@ -840,6 +840,7 @@ $('s-adm').onchange = function () {
 };
 $('s-test').onclick = function () {
     var o = $('s-out'); o.className = 'box'; o.textContent = 'A testar…';
+    if (!(S.db && S.db.reg)) { o.className = 'box'; o.textContent = 'Ainda não há endereço do servidor de registo. É opcional: só serve para ver «PCs ligados agora» (Cloudflare) e fica para mais tarde.'; return; }
     if (S.db.reg && !S.adm) S.adm = $('s-adm').value.trim() || null;
     liveReload().then(function () { o.className = 'box ok'; o.textContent = '✓ O servidor de registo respondeu (' + (S.live || []).length + ' PC(s) registados).'; render(); }).catch(function (e) { o.className = 'box bad'; o.textContent = '✗ ' + e.message; });
 };
