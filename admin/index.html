@@ -1,0 +1,1070 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src https:; img-src data:; base-uri 'none'; form-action 'none'">
+<meta name="robots" content="noindex,nofollow">
+<title>VueLux · Centro de comando</title>
+<style>
+:root{--bg:#f4f5f7;--surf:#fff;--surf2:#f1f3f5;--bd:#dee2e6;--fg:#212529;--mut:#6c757d;--pri:#714b67;--pri-fg:#fff;--ok:#1f7a3a;--ok-bg:#e6f4ea;--warn:#8a5a00;--warn-bg:#fff3d6;--bad:#b4141f;--bad-bg:#fde8ea;--mono:ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171b;--surf:#1d2127;--surf2:#262b33;--bd:#343b45;--fg:#e8eaed;--mut:#9aa4af;--pri:#b58aa9;--pri-fg:#14171b;--ok:#6fd08a;--ok-bg:#16301f;--warn:#f0c45a;--warn-bg:#352a0c;--bad:#ff8a94;--bad-bg:#3a1a1e}}
+:root[data-theme="dark"]{--bg:#14171b;--surf:#1d2127;--surf2:#262b33;--bd:#343b45;--fg:#e8eaed;--mut:#9aa4af;--pri:#b58aa9;--pri-fg:#14171b;--ok:#6fd08a;--ok-bg:#16301f;--warn:#f0c45a;--warn-bg:#352a0c;--bad:#ff8a94;--bad-bg:#3a1a1e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:18px 16px 60px}
+h1{font-size:22px;margin:6px 0 2px}h2{font-size:16px;margin:0 0 10px}
+.sub{color:var(--mut);margin:0 0 16px}
+.card{background:var(--surf);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;margin:0 0 14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.row+.row{margin-top:8px}
+label{display:block;font-size:12px;color:var(--mut);margin:0 0 3px}
+input[type=text],input[type=date],input[type=number],textarea,select{width:100%;border:1px solid var(--bd);border-radius:8px;padding:9px 10px;background:var(--surf2);color:var(--fg);font:inherit}
+textarea{font-family:var(--mono);font-size:12.5px;min-height:84px}
+.f{flex:1 1 200px;min-width:0}.f.s{flex:0 1 150px}
+button{min-height:40px;border-radius:9px;border:1px solid var(--bd);background:var(--surf);color:var(--fg);font:600 14px system-ui,sans-serif;padding:8px 14px;cursor:pointer}
+button:hover{border-color:var(--pri)}button.pri{background:var(--pri);color:var(--pri-fg);border-color:var(--pri)}button:disabled{opacity:.45;cursor:not-allowed}
+.note{font-size:13px;color:var(--mut);margin:6px 0 0}
+.box{border-radius:8px;padding:9px 12px;font-size:13.5px;margin:10px 0 0}.box.warn{background:var(--warn-bg);color:var(--warn)}.box.bad{background:var(--bad-bg);color:var(--bad)}.box.ok{background:var(--ok-bg);color:var(--ok)}
+table{width:100%;border-collapse:collapse;font-size:14px}th{font-size:12px;color:var(--mut);text-align:left;font-weight:600;padding:6px 8px;border-bottom:1px solid var(--bd)}td{padding:9px 8px;border-bottom:1px solid var(--bd);vertical-align:middle}tr.sel td{background:var(--surf2)}tr.cl{cursor:pointer}
+.chip{display:inline-block;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;white-space:nowrap}.chip.ok{background:var(--ok-bg);color:var(--ok)}.chip.warn{background:var(--warn-bg);color:var(--warn)}.chip.bad{background:var(--bad-bg);color:var(--bad)}
+.mono{font-family:var(--mono);font-size:12.5px}
+.hide{display:none!important}
+.dirty{color:var(--warn);font-weight:700}
+@media (max-width:640px){th:nth-child(1),td:nth-child(1){display:none}}
+
+.tabs{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 14px;border-bottom:1px solid var(--bd)}
+.tabs button{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;min-height:42px;padding:8px 12px;color:var(--mut)}
+.tabs button.on{color:var(--pri);border-bottom-color:var(--pri)}
+.top{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0 10px;margin:0 0 8px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;border-bottom:1px solid var(--bd)}
+.top .grow{flex:1 1 200px;min-width:0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:0 0 14px}
+.stat{background:var(--surf);border:1px solid var(--bd);border-radius:12px;padding:10px 12px}.stat b{display:block;font-size:22px}.stat span{font-size:12px;color:var(--mut)}
+tr.cl{cursor:pointer}tr.cl:hover td{background:var(--surf2)}tr.cl.sel td{background:var(--surf2);box-shadow:inset 3px 0 0 var(--pri)}
+.log{font:12.5px/1.5 var(--mono);background:var(--surf2);border-radius:8px;padding:8px 10px;white-space:pre-wrap;max-height:220px;overflow:auto;margin:10px 0 0}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;font-size:14px}.kv dt{color:var(--mut)}.kv dd{margin:0;overflow-wrap:anywhere}
+.sm{min-height:32px;padding:4px 10px;font-size:13px}
+.danger{color:var(--bad)}
+.lock{max-width:560px;margin:40px auto}
+.pill{display:inline-block;border:1px solid var(--bd);border-radius:20px;padding:1px 9px;font-size:12px;color:var(--mut)}
+</style>
+</head>
+<body>
+<main>
+<h1>🛰 VueLux · Centro de comando</h1>
+<p class="sub">Clientes, limite de PCs, suspensão e publicação de versões. Tudo corre <b>neste navegador</b>: a base de clientes fica cifrada no teu repositório privado e só tu a abres (com a frase-passe).</p>
+
+<!-- ============ ENTRADA ============ -->
+<section class="card lock" id="c-lock">
+  <h2 id="lk-title">Entrar</h2>
+  <div id="lk-first" class="hide">
+    <div class="row">
+      <div class="f"><label for="lk-owner">Utilizador do GitHub</label><input type="text" id="lk-owner" autocomplete="off" placeholder="racoosta-byte"></div>
+    </div>
+    <div class="row">
+      <div class="f"><label for="lk-pub">Repositório público (versões)</label><input type="text" id="lk-pub" value="vuelux" autocomplete="off"></div>
+      <div class="f"><label for="lk-data">Repositório privado (base de clientes)</label><input type="text" id="lk-data" value="vuelux-dados" autocomplete="off"></div>
+    </div>
+    <div class="row">
+      <div class="f"><label for="lk-pat">Token do GitHub (só estes 2 repositórios, «Contents: Read and write»)</label><input type="password" id="lk-pat" autocomplete="off" placeholder="github_pat_…"></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="f"><label for="lk-pass" id="lk-pass-l">Frase-passe</label><input type="password" id="lk-pass" autocomplete="off"></div>
+  </div>
+  <div class="row hide" id="lk-pass2r">
+    <div class="f"><label for="lk-pass2">Repete a frase-passe (mínimo 12 caracteres; <b>não há recuperação</b> se a perderes)</label><input type="password" id="lk-pass2" autocomplete="off"></div>
+  </div>
+  <div class="row"><button id="lk-go" class="pri">Entrar</button><button id="lk-forget" class="hide">Esquecer este navegador</button><button id="lk-local">Trabalhar só com um ficheiro (sem GitHub)</button></div>
+  <div class="box bad hide" id="lk-err"></div>
+  <div class="box hide" id="lk-info"></div>
+  <p class="note" id="lk-help">A frase-passe cifra a base de clientes (que tem a chave privada de assinatura) e o token. Nada disto sai do teu navegador em claro.</p>
+</section>
+
+<!-- ============ BASE AINDA NÃO EXISTE ============ -->
+<section class="card lock hide" id="c-nodb">
+  <h2>Ainda não há base de clientes no repositório privado</h2>
+  <p class="note">Se já usavas o gerador de licenças (7.2.0), <b>importa o teu ficheiro «clientes-vuelux.json»</b>: assim as licenças e os ficheiros que já entregaste continuam a servir. Só cries uma base nova se ainda não entregaste nada.</p>
+  <div class="row"><button id="nd-import" class="pri">📂 Importar «clientes-vuelux.json»…</button><button id="nd-new">✨ Criar uma base nova</button></div>
+  <div class="box bad hide" id="nd-err"></div>
+</section>
+
+<!-- ============ APLICAÇÃO ============ -->
+<div id="app" class="hide">
+  <div class="top">
+    <div class="grow"><b id="t-conn">—</b><div class="note" id="t-sub" style="margin:2px 0 0"></div></div>
+    <span id="t-dirty" class="dirty hide">● alterações por guardar</span>
+    <button id="t-save" class="pri" disabled>☁ Guardar e publicar</button>
+    <button id="t-lock">🔒 Bloquear</button>
+  </div>
+  <div class="box hide" id="t-msg"></div>
+  <nav class="tabs" id="tabs">
+    <button data-t="cli" class="on">👥 Clientes</button>
+    <button data-t="ver">📦 Versões</button>
+    <button data-t="ins">⬇ Instalar</button>
+    <button data-t="live">📡 Ao vivo</button>
+    <button data-t="set">⚙ Definições</button>
+    <button data-t="chk">🔎 Verificar licença</button>
+  </nav>
+
+  <!-- ---- Clientes ---- -->
+  <div data-p="cli">
+    <div class="stats" id="stats"></div>
+    <section class="card">
+      <h2>Clientes</h2>
+      <table id="t-cl"><thead><tr><th>N.º</th><th>Cliente</th><th>Domínio</th><th>Válida até</th><th>PCs</th><th>Estado</th></tr></thead><tbody></tbody></table>
+      <p class="note" id="cl-empty">Ainda não há clientes. Cria o primeiro aqui em baixo.</p>
+      <div id="detail" class="hide" style="margin-top:14px;border-top:1px solid var(--bd);padding-top:14px">
+        <h2 id="d-title">Cliente</h2>
+        <div class="row">
+          <div class="f"><label for="d-name">Nome do cliente</label><input type="text" id="d-name"></div>
+          <div class="f"><label for="d-dom">Domínio(s) (vários separados por vírgula)</label><input type="text" id="d-dom" placeholder="cliente.odoo.com"></div>
+        </div>
+        <div class="row">
+          <div class="f s"><label for="d-exp">Válida até</label><input type="date" id="d-exp"></div>
+          <div class="f s" style="flex:0 0 auto;align-self:flex-end"><label style="display:flex;gap:6px;align-items:center;margin:0 0 10px"><input type="checkbox" id="d-never"> sem data de fim</label></div>
+          <button id="d-p30">+30 dias</button><button id="d-p1y">+1 ano</button>
+          <button id="d-save" class="pri">Aplicar</button>
+        </div>
+        <div class="box bad hide" id="d-err"></div>
+
+        <h2 style="margin-top:18px">💻 Computadores (PCs)</h2>
+        <div class="row">
+          <div class="f s"><label for="d-max">Máximo de PCs (0 = sem limite)</label><input type="number" id="d-max" min="0" max="999" value="0"></div>
+          <div class="f"><label for="d-note">Mensagem que aparece no ecrã do cliente (opcional)</label><input type="text" id="d-note" maxlength="200" placeholder="Ex.: Fatura de novembro em atraso"></div>
+          <label style="display:flex;gap:6px;align-items:center;margin:0 0 10px;align-self:flex-end"><input type="checkbox" id="d-rev"> <b class="danger">Suspender o serviço deste cliente</b></label>
+        </div>
+        <table id="t-dev" class="hide"><thead><tr><th>ID do PC</th><th>Nome</th><th>Desde</th><th>Visto</th><th></th></tr></thead><tbody></tbody></table>
+        <p class="note" id="dev-note"></p>
+        <div class="row">
+          <div class="f"><label for="d-pcid">Autorizar um PC (o ID aparece no separador «🔑 Licença» do ecrã, ou no ecrã de pedido)</label><input type="text" id="d-pcid" placeholder="PC-XXXX-XXXX-XXXX" class="mono"></div>
+          <div class="f s"><label for="d-pcn">Nome (opcional)</label><input type="text" id="d-pcn" placeholder="Caixa 1"></div>
+          <button id="d-pcadd" style="align-self:flex-end">➕ Autorizar</button>
+        </div>
+        <div class="box bad hide" id="d-pcerr"></div>
+
+        <label for="d-tok" style="margin-top:14px">Licença (o cliente cola-a no separador «🔑 Licença» ou no ecrã de ativação)</label>
+        <textarea id="d-tok" readonly></textarea>
+        <div class="row">
+          <button id="d-copy">📋 Copiar a licença</button>
+          <button id="d-file" title="Ficheiro do programa já pronto para este cliente: licença e domínio dentro">📦 Ficheiro do programa deste cliente</button>
+          <button id="d-del" class="danger" style="margin-left:auto">🗑 Apagar cliente</button>
+        </div>
+        <p class="note" id="d-msg"></p>
+      </div>
+    </section>
+    <section class="card">
+      <h2>Novo cliente</h2>
+      <div class="row">
+        <div class="f"><label for="n-name">Nome do cliente</label><input type="text" id="n-name" placeholder="Restaurante exemplo"></div>
+        <div class="f"><label for="n-dom">Domínio do Odoo dele</label><input type="text" id="n-dom" placeholder="restauranteexemplo.odoo.com"></div>
+        <div class="f s"><label for="n-exp">Válida até</label><input type="date" id="n-exp"></div>
+        <div class="f s" style="flex:0 0 auto;align-self:flex-end"><label style="display:flex;gap:6px;align-items:center;margin:0 0 10px"><input type="checkbox" id="n-never"> sem fim</label></div>
+        <div class="f s"><label for="n-max">Máx. PCs (0 = sem limite)</label><input type="number" id="n-max" min="0" max="999" value="0"></div>
+        <button id="n-add" class="pri" style="align-self:flex-end">Criar cliente</button>
+      </div>
+      <p class="note">Escreve só o endereço (podes colar o endereço completo da página). O VueLux só liga nesse domínio.</p>
+      <div class="box bad hide" id="n-err"></div>
+    </section>
+  </div>
+
+  <!-- ---- Versões ---- -->
+  <div data-p="ver" class="hide">
+    <section class="card">
+      <h2>Versões publicadas</h2>
+      <dl class="kv" id="v-cur"><dt>A ler…</dt><dd></dd></dl>
+      <div class="row" style="margin-top:10px"><button id="v-reload">🔄 Atualizar</button><button id="v-promote" class="hide">⬆ Passar a beta para estável</button><button id="v-dropbeta" class="hide">Retirar a beta</button></div>
+    </section>
+    <section class="card">
+      <h2>Publicar uma versão nova</h2>
+      <p class="note" style="margin:0 0 8px">Escolhe o ficheiro normal «odoo-preparation-…user.js» (o <b>legível</b>, não o «protegido»). A página cifra-o, assina-o com a tua chave e envia-o para o GitHub. Os ecrãs dos clientes apanham-no sozinhos (de madrugada, com o ecrã parado) ou com 2 toques no separador «🔑 Licença».</p>
+      <div class="row">
+        <button id="p-open">📂 Escolher o ficheiro…</button><input type="file" id="f-prog" accept=".js" class="hide">
+        <span id="p-st" class="note" style="margin:0 0 0 6px"></span>
+      </div>
+      <div class="row">
+        <div class="f s"><label for="p-chan">Canal</label><select id="p-chan"><option value="stable">Estável (todos os ecrãs)</option><option value="beta">Beta (só ecrãs em «Beta»)</option></select></div>
+        <div class="f"><label for="p-notes">Notas da versão (opcional)</label><input type="text" id="p-notes" maxlength="200"></div>
+        <button id="p-pub" class="pri" style="align-self:flex-end" disabled>🚀 Publicar</button>
+      </div>
+      <div class="box bad hide" id="p-err"></div>
+      <div class="log hide" id="p-log"></div>
+    </section>
+    <section class="card">
+      <h2>Edição interna (a tua, protegida por código)</h2>
+      <p class="note" style="margin:0 0 8px">Escolhe o ficheiro <b>protegido</b> («…-protegido.user.js» feito com o código de segurança). Fica em <span class="mono">internal/</span> e o Tampermonkey dos teus ecrãs atualiza-se sozinho a partir daí. É o mesmo ficheiro cifrado que já usas: só abre com o teu código.</p>
+      <div class="row"><button id="i-open">📂 Escolher o ficheiro protegido…</button><input type="file" id="f-int" accept=".js" class="hide"><span id="i-st" class="note" style="margin:0 0 0 6px"></span><button id="i-pub" class="pri" disabled>🚀 Publicar edição interna</button></div>
+      <div class="box bad hide" id="i-err"></div>
+      <div class="log hide" id="i-log"></div>
+    </section>
+  </div>
+
+  <!-- ---- Instalar ---- -->
+  <div data-p="ins" class="hide">
+    <section class="card">
+      <h2>Ligações para instalar</h2>
+      <p class="note" style="margin:0 0 8px">Quem tem o Tampermonkey instalado abre a ligação e carrega em «Instalar». A licença cola-se depois no separador «🔑 Licença» (ou usa o «ficheiro do programa deste cliente» na lista de clientes, que já traz a licença).</p>
+      <label>Instalador para clientes (versão estável, com licença a colar)</label>
+      <div class="row"><input type="text" id="l-inst" readonly class="mono"><button class="sm" data-copy="l-inst">📋 Copiar</button></div>
+      <label style="margin-top:10px">Edição interna (Tampermonkey, só abre com o teu código)</label>
+      <div class="row"><input type="text" id="l-int" readonly class="mono"><button class="sm" data-copy="l-int">📋 Copiar</button></div>
+      <label style="margin-top:10px">Esta página</label>
+      <div class="row"><input type="text" id="l-adm" readonly class="mono"><button class="sm" data-copy="l-adm">📋 Copiar</button></div>
+    </section>
+  </div>
+
+  <!-- ---- Ao vivo ---- -->
+  <div data-p="live" class="hide">
+    <section class="card">
+      <h2>PCs ligados ao vivo</h2>
+      <div id="lv-off">
+        <p class="note" style="margin:0">Só com o <b>servidor de registo</b> (Cloudflare, gratuito) o VueLux consegue dizer-te que PCs estão ligados agora e aceitar sozinho PCs novos até ao limite. Sem ele, os limites funcionam na mesma, mas <b>és tu que autorizas</b> cada PC (campo «Autorizar um PC» no cliente) e não há «ligado agora». Instruções no guia (parte «Cloudflare»).</p>
+      </div>
+      <div id="lv-on" class="hide">
+        <div class="row"><button id="lv-reload">🔄 Atualizar</button><span class="note" id="lv-st" style="margin:0"></span></div>
+        <table id="t-live"><thead><tr><th>Cliente</th><th>ID do PC</th><th>Nome</th><th>Versão</th><th>Visto</th><th>Estado</th><th></th></tr></thead><tbody></tbody></table>
+        <p class="note" id="lv-empty">Ainda nenhum PC se registou.</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- ---- Definições ---- -->
+  <div data-p="set" class="hide">
+    <section class="card">
+      <h2>Definições das licenças</h2>
+      <div class="row">
+        <div class="f"><label for="i-contact">Contacto para renovar (aparece ao cliente)</label><input type="text" id="i-contact" placeholder="Ex.: Suporte VueLux · 912 345 678"></div>
+        <div class="f s"><label for="i-warn">Avisar (dias antes do fim)</label><input type="number" id="i-warn" min="0" max="90" value="14"></div>
+        <div class="f s"><label for="i-grace">Tolerância (dias depois)</label><input type="number" id="i-grace" min="0" max="90" value="7"></div>
+        <div class="f s"><label for="i-stale">Sem ver o estado há (dias)</label><input type="number" id="i-stale" min="0" max="365" value="0"></div>
+      </div>
+      <p class="note">«Sem ver o estado há N dias» (0 = nunca): se um ecrã ficar N dias sem conseguir ler o estado online, o VueLux desliga-se. Deixa em 0 se não precisas — uma falha do GitHub ou da internet do cliente não deve parar o serviço.</p>
+      <p class="note">Avisar/Tolerância ficam dentro do ficheiro do programa; para mudar nos clientes é preciso publicar o instalador de novo (Versões → Publicar).</p>
+    </section>
+    <section class="card">
+      <h2>Endereços</h2>
+      <div class="row">
+        <div class="f"><label for="s-repo">Endereço público (GitHub Pages)</label><input type="text" id="s-repo" class="mono" placeholder="https://utilizador.github.io/vuelux/"></div>
+        <div class="f"><label for="s-reg">Servidor de registo (Cloudflare) — opcional</label><input type="text" id="s-reg" class="mono" placeholder="https://vuelux-registo.exemplo.workers.dev"></div>
+      </div>
+      <div class="row"><div class="f"><label for="s-adm">Chave de administração do servidor de registo (só fica neste navegador, cifrada)</label><input type="password" id="s-adm" autocomplete="off"></div><button id="s-test" style="align-self:flex-end">Testar</button></div>
+      <div class="row"><button id="s-gen">🎲 Gerar uma chave de administração</button><button id="s-jwk">🔐 Mostrar a chave de assinatura para o servidor…</button></div>
+      <textarea id="s-show" class="hide" readonly></textarea>
+      <div class="box hide" id="s-out"></div>
+      <p class="note">Estes endereços ficam dentro do instalador. O endereço do servidor de registo só tem efeito depois de publicares uma versão estável.</p>
+    </section>
+    <section class="card">
+      <h2>Segurança e cópias</h2>
+      <div class="row">
+        <button id="s-bkp">💾 Descarregar cópia de segurança (JSON)</button>
+        <button id="s-bkpc">💾 Descarregar cópia cifrada</button>
+        <button id="s-imp">📂 Importar uma base…</button><input type="file" id="f-imp" accept=".json,application/json" class="hide">
+        <button id="s-pass">🔑 Mudar a frase-passe</button>
+      </div>
+      <div class="row hide" id="s-passrow"><div class="f"><label for="s-np1">Nova frase-passe (mínimo 12 caracteres)</label><input type="password" id="s-np1" autocomplete="off"></div><div class="f"><label for="s-np2">Repete</label><input type="password" id="s-np2" autocomplete="off"></div><button id="s-npgo" class="pri" style="align-self:flex-end">Mudar</button></div>
+      <div class="box warn">⚠ A cópia «JSON» tem a <b>chave privada</b> em claro: guarda-a como uma palavra-passe (pen, cofre). Se perderes a chave não consegues assinar versões compatíveis com os ecrãs já instalados.</div>
+      <div class="box bad hide" id="s-err"></div>
+    </section>
+  </div>
+
+  <!-- ---- Verificar ---- -->
+  <div data-p="chk" class="hide">
+    <section class="card">
+      <h2>Verificar uma licença</h2>
+      <label for="v-tok">Cola aqui a licença que o cliente diz que não funciona</label>
+      <textarea id="v-tok"></textarea>
+      <div class="row"><button id="v-go">Verificar</button></div>
+      <div class="box hide" id="v-out"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+// VueLux — núcleo das licenças (partilhado pelo carregador, pelo gerador e pelos testes). Sem dependências; usa WebCrypto.
+// Licença = bytes: [0]=versão(1) [1]=época da chave [2..4]=id do cliente [5..6]=emitida [7..8]=válida até (dias desde 2025-01-01; 0xFFFF = sem fim)
+//   [9]=opções [10]=n.º de domínios (1..4) [11..]=n×6 bytes (SHA-256 do domínio, minúsculas) [..]=chave do programa (16 bytes) [..]=assinatura ECDSA P-256/SHA-256 (64 bytes)
+// Texto: «VL1-» + base32 (A-Z 2-7) em grupos de 6.
+var VLC = (function () {
+    var EPOCH = Date.UTC(2025, 0, 1) / 86400000, A32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567', NEVER = 0xFFFF;
+    var subtle = (globalThis.crypto && globalThis.crypto.subtle), enc = new TextEncoder();
+    function dayOf(ms) { return Math.floor(ms / 86400000) - EPOCH; }
+    function isoOf(d) { return d === NEVER ? 'sem fim' : new Date((d + EPOCH) * 86400000).toISOString().slice(0, 10); }
+    function dayFromISO(s) { if (!s || s === 'sem fim' || s === 'sem-fim' || s === 'never') return NEVER; var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s)); if (!m) throw new Error('data inválida (usa AAAA-MM-DD)'); return Math.floor(Date.UTC(+m[1], +m[2] - 1, +m[3]) / 86400000) - EPOCH; }
+    function b32(u) { var out = '', bits = 0, v = 0, i; for (i = 0; i < u.length; i++) { v = (v << 8) | u[i]; bits += 8; while (bits >= 5) { out += A32[(v >>> (bits - 5)) & 31]; bits -= 5; } v &= (1 << bits) - 1; } if (bits) out += A32[(v << (5 - bits)) & 31]; return out; }
+    function unb32(s) { var out = [], bits = 0, v = 0, i, k; s = String(s).toUpperCase(); for (i = 0; i < s.length; i++) { k = A32.indexOf(s[i]); if (k < 0) return null; v = (v << 5) | k; bits += 5; if (bits >= 8) { out.push((v >>> (bits - 8)) & 255); bits -= 8; v &= (1 << bits) - 1; } } return new Uint8Array(out); }
+    function b64u(u) { var s = '', i; for (i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+    function unb64u(s) { s = String(s).replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; var b = atob(s), u = new Uint8Array(b.length), i; for (i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+    function domHash(host) { return subtle.digest('SHA-256', enc.encode(String(host || '').trim().toLowerCase())).then(function (d) { return new Uint8Array(d).slice(0, 6); }); }
+    function body(o) {          // {kid,cid,iss,exp,flags,doms:[Uint8Array(6)...],K:Uint8Array(16)}
+        var n = o.doms.length; if (n < 1 || n > 4) throw new Error('1 a 4 domínios');
+        var u = new Uint8Array(11 + n * 6 + 16), i;
+        u[0] = 1; u[1] = o.kid & 255; u[2] = (o.cid >> 16) & 255; u[3] = (o.cid >> 8) & 255; u[4] = o.cid & 255; u[5] = (o.iss >> 8) & 255; u[6] = o.iss & 255; u[7] = (o.exp >> 8) & 255; u[8] = o.exp & 255; u[9] = o.flags & 255; u[10] = n;
+        for (i = 0; i < n; i++) u.set(o.doms[i], 11 + i * 6);
+        u.set(o.K, 11 + n * 6); return u;
+    }
+    function text(bytes) { var s = b32(bytes), out = [], i; for (i = 0; i < s.length; i += 6) out.push(s.slice(i, i + 6)); return 'VL1-' + out.join('-'); }
+    function parse(tok) {
+        var s = String(tok || '').replace(/[\s\-_.,;:]+/g, '').toUpperCase(); if (s.indexOf('VL1') === 0) s = s.slice(3);
+        var u = unb32(s); if (!u || u.length < 11 + 6 + 16 + 64 || u[0] !== 1) return null;
+        var n = u[10]; if (n < 1 || n > 4 || u.length < 11 + n * 6 + 16 + 64) return null;
+        var end = 11 + n * 6 + 16, doms = [], i; for (i = 0; i < n; i++) doms.push(u.slice(11 + i * 6, 17 + i * 6));
+        return { kid: u[1], cid: (u[2] << 16) | (u[3] << 8) | u[4], iss: (u[5] << 8) | u[6], exp: (u[7] << 8) | u[8], flags: u[9], doms: doms, K: u.slice(end - 16, end), body: u.slice(0, end), sig: u.slice(end, end + 64), canon: text(u.slice(0, end + 64)) };
+    }
+    function sign(privJwk, bodyBytes) {
+        return subtle.importKey('jwk', privJwk, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']).then(function (k) { return subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, k, bodyBytes); }).then(function (s) { return new Uint8Array(s); });
+    }
+    function verify(pubJwk, p) {
+        return subtle.importKey('jwk', { kty: 'EC', crv: 'P-256', x: pubJwk.x, y: pubJwk.y, ext: true }, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify'])
+            .then(function (k) { return subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, k, p.sig, p.body); }).catch(function () { return false; });
+    }
+    function sameDom(a, b) { var i; for (i = 0; i < 6; i++) if (a[i] !== b[i]) return false; return true; }
+    function make(privJwk, o) { var b = body(o); return sign(privJwk, b).then(function (sig) { var all = new Uint8Array(b.length + 64); all.set(b); all.set(sig, b.length); return text(all); }); }
+    // ---- 7.3: envelopes assinados (estado online, manifesto de versões, resposta do registo), ID do PC, versões, payload cifrado ----
+    // Envelope = {"b":"<texto JSON>","s":"<assinatura ECDSA em base64url>"}; a assinatura é sobre «PREFIXO\n» + b (os bytes exatos do texto b, sem reserializar).
+    function utf8(s) { return enc.encode(s); }
+    function sha256(u) { return subtle.digest('SHA-256', u).then(function (d) { return new Uint8Array(d); }); }
+    function hex(u, n) { var s = '', i; for (i = 0; i < u.length && (!n || i < n); i++) s += (u[i] < 16 ? '0' : '') + u[i].toString(16); return s; }
+    function envSign(privJwk, pre, obj) { var b = JSON.stringify(obj); return sign(privJwk, utf8(pre + '\n' + b)).then(function (s) { return JSON.stringify({ b: b, s: b64u(s) }); }); }
+    function envOpen(pubJwk, pre, txt) {
+        var e; try { e = JSON.parse(txt); } catch (x) { return Promise.resolve(null); }
+        if (!e || typeof e.b !== 'string' || typeof e.s !== 'string') return Promise.resolve(null);
+        return subtle.importKey('jwk', { kty: 'EC', crv: 'P-256', x: pubJwk.x, y: pubJwk.y, ext: true }, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify'])
+            .then(function (k) { return subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, k, unb64u(e.s), utf8(pre + '\n' + e.b)); })
+            .then(function (ok) { if (!ok) return null; try { var o = JSON.parse(e.b); return o && typeof o === 'object' ? o : null; } catch (x) { return null; } })
+            .catch(function () { return null; });
+    }
+    function statusKey(kid, cid) { return sha256(utf8('vl-st|' + kid + '|' + cid)).then(function (u) { return hex(u, 6); }); }       // chave (12 hex) da licença no ficheiro público de estado: não mostra o n.º do cliente
+    function devHash(id) { return sha256(utf8('vl-dev|' + String(id || '').trim().toUpperCase())).then(function (u) { return hex(u, 5); }); }   // 10 hex do ID do PC
+    function newDeviceId() { var u = new Uint8Array(8), s; globalThis.crypto.getRandomValues(u); s = b32(u).slice(0, 12); return 'PC-' + s.slice(0, 4) + '-' + s.slice(4, 8) + '-' + s.slice(8, 12); }
+    function okDeviceId(v) { return /^PC-[A-Z2-7]{4}-[A-Z2-7]{4}-[A-Z2-7]{4}$/.test(String(v || '')); }
+    function cmpVer(a, b) { var x = String(a || '0').split('.'), y = String(b || '0').split('.'), i, d, n = Math.max(x.length, y.length); for (i = 0; i < n; i++) { d = (parseInt(x[i], 10) || 0) - (parseInt(y[i], 10) || 0); if (d) return d < 0 ? -1 : 1; } return 0; }
+    // payload = AES-GCM(chave do programa, AAD «vuelux2») de deflate-raw(UTF-8). Ficheiro = iv(12) + cifra.
+    function encPayload(K, txt, iv) {
+        var raw = new Response(new Blob([utf8(txt)]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer();
+        iv = iv || globalThis.crypto.getRandomValues(new Uint8Array(12));
+        return raw.then(function (r) { return subtle.importKey('raw', K, 'AES-GCM', false, ['encrypt']).then(function (k) { return subtle.encrypt({ name: 'AES-GCM', iv: iv, additionalData: utf8('vuelux2') }, k, r); }); })
+            .then(function (ct) { var all = new Uint8Array(12 + ct.byteLength); all.set(iv); all.set(new Uint8Array(ct), 12); return all; });
+    }
+    function decPayload(K, bytes, iv) {
+        if (!iv) { iv = bytes.slice(0, 12); bytes = bytes.slice(12); }
+        return subtle.importKey('raw', K, 'AES-GCM', false, ['decrypt']).then(function (k) { return subtle.decrypt({ name: 'AES-GCM', iv: iv, additionalData: utf8('vuelux2') }, k, bytes); })
+            .then(function (buf) { return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer(); })
+            .then(function (buf) { return new TextDecoder().decode(buf); });
+    }
+    return { utf8: utf8, sha256: sha256, hex: hex, envSign: envSign, envOpen: envOpen, statusKey: statusKey, devHash: devHash, newDeviceId: newDeviceId, okDeviceId: okDeviceId, cmpVer: cmpVer, encPayload: encPayload, decPayload: decPayload, EPOCH: EPOCH, NEVER: NEVER, dayOf: dayOf, isoOf: isoOf, dayFromISO: dayFromISO, b64u: b64u, unb64u: unb64u, domHash: domHash, parse: parse, verify: verify, make: make, sameDom: sameDom, text: text };
+})();
+
+</script>
+<script>
+var LOADER_TPL = "(function () {\n    'use strict';\n    var P = __PARAMS__;\n    var E = \"\";          // licença embutida (a ferramenta de licenças personaliza o ficheiro de cada cliente; vazio = o cliente cola a licença)\n    /*@@CORE@@*/\n    var subtle = null;\n    try { subtle = window.crypto && window.crypto.subtle; } catch (e) {}\n    if (!subtle) return;\n    var LSK = 'vl-lic-v1', SEEN = 'vl-seen-v1', DAY = 86400000, dec = new TextDecoder(), enc = new TextEncoder();\n    var DEVK = 'vl-dev-v1', STK = 'vl-status-v1', UPK = 'vl-upd-v1', BADK = 'vl-bad-v1', BOOT = 'vl-boot-v1', CHK = 'vl-chan-v1', LCK = 'vl-lastchk-v1', MTK = 'vl-mts-v1', CACHE = 'vuelux-app-v1';\n    P.shell = P.shell || 1;\n    function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }\n    function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }\n    function top() { try { return window.top === window; } catch (e) { return false; } }\n    function ready(fn) { if (document.body) fn(); else document.addEventListener('DOMContentLoaded', fn, { once: true }); }\n    // ---- textos do carregador (o resto do programa tem o seu próprio dicionário) ----\n    var S = {\n        t_none: ['Ativar o VueLux', 'Activer VueLux', 'Activate VueLux', 'VueLux aktivieren', 'Activar VueLux'],\n        t_expired: ['Licença expirada', 'Licence expirée', 'Licence expired', 'Lizenz abgelaufen', 'Licencia caducada'],\n        t_domain: ['Licença de outro domínio', 'Licence d’un autre domaine', 'Licence for another domain', 'Lizenz für eine andere Domain', 'Licencia de otro dominio'],\n        t_old: ['Licença desatualizada', 'Licence obsolète', 'Outdated licence', 'Veraltete Lizenz', 'Licencia obsoleta'],\n        t_invalid: ['Licença inválida', 'Licence invalide', 'Invalid licence', 'Ungültige Lizenz', 'Licencia no válida'],\n        p_none: ['Cola aqui a licença que recebeste.', 'Collez ici la licence reçue.', 'Paste the licence you received here.', 'Fügen Sie hier die erhaltene Lizenz ein.', 'Pega aquí la licencia que recibiste.'],\n        p_expired: ['A licença terminou em {d}. O VueLux está desligado e o Odoo continua a funcionar normalmente. Cola uma licença nova para voltar a ligar.', 'La licence a pris fin le {d}. VueLux est désactivé et Odoo continue de fonctionner normalement. Collez une nouvelle licence pour le réactiver.', 'The licence ended on {d}. VueLux is switched off and Odoo keeps working normally. Paste a new licence to switch it back on.', 'Die Lizenz endete am {d}. VueLux ist ausgeschaltet, Odoo funktioniert normal weiter. Fügen Sie eine neue Lizenz ein, um es wieder einzuschalten.', 'La licencia terminó el {d}. VueLux está desactivado y Odoo sigue funcionando con normalidad. Pega una licencia nueva para volver a activarlo.'],\n        p_domain: ['Esta licença não é para este endereço ({h}). Pede uma licença para este domínio.', 'Cette licence n’est pas valable pour cette adresse ({h}). Demandez une licence pour ce domaine.', 'This licence is not valid for this address ({h}). Ask for a licence for this domain.', 'Diese Lizenz gilt nicht für diese Adresse ({h}). Fordern Sie eine Lizenz für diese Domain an.', 'Esta licencia no es para esta dirección ({h}). Pide una licencia para este dominio.'],\n        p_old: ['Esta licença é de uma versão antiga do programa. Pede uma licença nova.', 'Cette licence correspond à une ancienne version du programme. Demandez une nouvelle licence.', 'This licence belongs to an old version of the program. Ask for a new licence.', 'Diese Lizenz gehört zu einer alten Programmversion. Fordern Sie eine neue Lizenz an.', 'Esta licencia es de una versión antigua del programa. Pide una licencia nueva.'],\n        p_invalid: ['A licença não é válida. Confere se a copiaste inteira.', 'La licence n’est pas valide. Vérifiez qu’elle est copiée en entier.', 'The licence is not valid. Check that you copied all of it.', 'Die Lizenz ist nicht gültig. Prüfen Sie, ob sie vollständig kopiert wurde.', 'La licencia no es válida. Comprueba que la copiaste entera.'],\n        older: ['Já tens uma licença igual ou mais recente.', 'Vous avez déjà une licence identique ou plus récente.', 'You already have an equal or newer licence.', 'Sie haben bereits eine gleiche oder neuere Lizenz.', 'Ya tienes una licencia igual o más reciente.'],\n        activate: ['Ativar', 'Activer', 'Activate', 'Aktivieren', 'Activar'],\n        close: ['Usar o Odoo sem o programa', 'Utiliser Odoo sans le programme', 'Use Odoo without the program', 'Odoo ohne das Programm nutzen', 'Usar Odoo sin el programa'],\n        dom: ['Domínio deste ecrã', 'Domaine de cet écran', 'Domain of this screen', 'Domain dieses Bildschirms', 'Dominio de esta pantalla'],\n        contact: ['Contacto', 'Contact', 'Contact', 'Kontakt', 'Contacto'],\n        ok: ['Licença ativada ✓ A recarregar…', 'Licence activée ✓ Rechargement…', 'Licence activated ✓ Reloading…', 'Lizenz aktiviert ✓ Wird neu geladen…', 'Licencia activada ✓ Recargando…'],\n        busy: ['A verificar…', 'Vérification…', 'Checking…', 'Prüfung…', 'Comprobando…'],\n        bar: ['⏳ A licença mudou ou terminou — o VueLux desliga-se quando este ecrã ficar parado.', '⏳ La licence a changé ou pris fin — VueLux s’éteindra lorsque cet écran sera inactif.', '⏳ The licence changed or ended — VueLux will switch off when this screen is idle.', '⏳ Die Lizenz hat sich geändert oder ist beendet — VueLux schaltet sich ab, sobald dieser Bildschirm ruht.', '⏳ La licencia cambió o terminó — VueLux se apagará cuando esta pantalla esté inactiva.'],\n        t_revoked: ['Licença desativada', 'Licence désactivée', 'Licence deactivated', 'Lizenz deaktiviert', 'Licencia desactivada'],\n        p_revoked: ['Esta licença foi desativada. O VueLux está desligado e o Odoo continua a funcionar normalmente. Fala com quem te forneceu o programa.', 'Cette licence a été désactivée. VueLux est désactivé et Odoo continue de fonctionner normalement. Contactez votre fournisseur.', 'This licence has been deactivated. VueLux is switched off and Odoo keeps working normally. Contact whoever supplied the program.', 'Diese Lizenz wurde deaktiviert. VueLux ist ausgeschaltet, Odoo funktioniert normal weiter. Wenden Sie sich an Ihren Lieferanten.', 'Esta licencia fue desactivada. VueLux está desactivado y Odoo sigue funcionando con normalidad. Habla con quien te dio el programa.'],\n        t_device: ['PC não autorizado', 'Ordinateur non autorisé', 'Computer not authorised', 'Computer nicht autorisiert', 'Equipo no autorizado'],\n        p_device: ['Este PC ainda não está autorizado a usar a licença (limite de PCs). Envia o ID abaixo a quem te forneceu o programa para o autorizar. O Odoo continua a funcionar.', 'Cet ordinateur n’est pas encore autorisé à utiliser la licence (limite d’ordinateurs). Envoyez l’ID ci-dessous à votre fournisseur pour l’autoriser. Odoo continue de fonctionner.', 'This computer is not yet authorised to use the licence (computer limit). Send the ID below to whoever supplied the program so they can authorise it. Odoo keeps working.', 'Dieser Computer ist noch nicht für die Lizenz freigegeben (Computerlimit). Senden Sie die ID unten an Ihren Lieferanten. Odoo funktioniert weiter.', 'Este equipo aún no está autorizado a usar la licencia (límite de equipos). Envía el ID de abajo a quien te dio el programa para autorizarlo. Odoo sigue funcionando.'],\n        t_offline: ['Sem ligação ao servidor de licenças', 'Pas de connexion au serveur de licences', 'No connection to the licence server', 'Keine Verbindung zum Lizenzserver', 'Sin conexión con el servidor de licencias'],\n        p_offline: ['Este PC não contactou o servidor de licenças há mais de {n} dia(s). Liga-o à Internet e o VueLux volta sozinho. O Odoo continua a funcionar.', 'Cet ordinateur n’a pas contacté le serveur de licences depuis plus de {n} jour(s). Connectez-le à Internet et VueLux reviendra tout seul. Odoo continue de fonctionner.', 'This computer has not contacted the licence server for more than {n} day(s). Connect it to the Internet and VueLux comes back by itself. Odoo keeps working.', 'Dieser Computer hat den Lizenzserver seit mehr als {n} Tag(en) nicht erreicht. Verbinden Sie ihn mit dem Internet, VueLux kommt von selbst zurück. Odoo funktioniert weiter.', 'Este equipo no contactó con el servidor de licencias desde hace más de {n} día(s). Conéctalo a Internet y VueLux vuelve solo. Odoo sigue funcionando.'],\n        devid: ['ID deste PC', 'ID de cet ordinateur', 'ID of this computer', 'ID dieses Computers', 'ID de este equipo'],\n        copyreq: ['Copiar pedido de autorização', 'Copier la demande d’autorisation', 'Copy authorisation request', 'Autorisierungsanfrage kopieren', 'Copiar solicitud de autorización'],\n        copied: ['Copiado ✓', 'Copié ✓', 'Copied ✓', 'Kopiert ✓', 'Copiado ✓']\n    };\n    function lang() {\n        var v = lsGet('tm-odoo-lang-v1'), l = ['pt', 'fr', 'en', 'de', 'es'];\n        if (l.indexOf(v) < 0) { try { v = String(document.documentElement.getAttribute('lang') || navigator.language || '').toLowerCase().slice(0, 2); } catch (e) { v = ''; } }\n        return l.indexOf(v) < 0 ? (v ? 2 : 0) : l.indexOf(v);\n    }\n    function tx(k, o) { var s = S[k][lang()]; if (o) Object.keys(o).forEach(function (n) { s = s.replace('{' + n + '}', o[n]); }); return s; }\n    // ---- relógio fiável: nunca recua (o relógio do PC pode ser mexido); o «Date» das respostas do Odoo só o faz avançar ----\n    var serverMs = 0;\n    function trusted() {\n        var now = Date.now(), seen = Number(lsGet(SEEN)) || 0, t = Math.max(now, seen, serverMs);\n        if (t > seen) lsSet(SEEN, String(t));\n        return t;\n    }\n    function askServer() {\n        try { return fetch(location.origin + '/web/login', { method: 'HEAD', cache: 'no-store', credentials: 'omit' }).then(function (r) { var d = Date.parse(r.headers.get('Date') || ''); if (d > serverMs) serverMs = d; }).catch(function () {}); } catch (e) { return Promise.resolve(); }\n    }\n    // ---- avaliar uma licença: assinatura, época da chave, domínio e validade ----\n    function evaluate(tok) {\n        var p = VLC.parse(tok);\n        if (!p) return Promise.resolve({ state: 'invalid' });\n        return VLC.verify(P.pk, p).then(function (ok) {\n            if (!ok) return { state: 'invalid' };\n            if (p.kid !== P.kid) return { state: 'old', p: p };\n            return VLC.domHash(location.hostname).then(function (hh) {\n                if (!p.doms.some(function (d) { return VLC.sameDom(d, hh); })) return { state: 'domain', p: p };\n                var nd = VLC.dayOf(trusted()), info = { p: p, exp: p.exp, expISO: VLC.isoOf(p.exp), cid: p.cid, kid: p.kid, host: location.hostname, contact: P.contact || '', warn: P.warn, grace: P.grace, token: p.canon };\n                if (p.exp === VLC.NEVER) { info.state = 'ok'; info.daysLeft = 99999; info.graceLeft = 0; return info; }\n                info.daysLeft = p.exp - nd; info.graceLeft = p.exp + P.grace - nd;\n                info.state = info.daysLeft >= 0 ? (info.daysLeft <= P.warn ? 'warn' : 'ok') : (info.graceLeft >= 0 ? 'grace' : 'expired');\n                return info;\n            });\n        }).catch(function () { return { state: 'invalid' }; });\n    }\n    var RANK = { ok: 5, warn: 4, grace: 3, expired: 2, revoked: 1, device: 1, offline: 1, old: 1, domain: 1, invalid: 0 };\n    // ---- este PC: um ID aleatório guardado neste navegador (serve para o autorizar / limitar o n.º de PCs) ----\n    function jget(k) { try { return JSON.parse(lsGet(k) || 'null'); } catch (e) { return null; } }\n    function deviceId() {\n        var v = lsGet(DEVK);\n        if (!VLC.okDeviceId(v)) { v = VLC.newDeviceId(); lsSet(DEVK, v); }\n        return v;\n    }\n    // ---- rede: ficheiros públicos do GitHub Pages (estado, versões) ----\n    function getBuf(url, ms, bin) {\n        return new Promise(function (res, rej) {\n            var done = false, ac = null, t = setTimeout(function () { if (!done) { done = true; try { if (ac) ac.abort(); } catch (e) {} rej(new Error('timeout')); } }, ms || 6000);\n            try { ac = new AbortController(); } catch (e) {}\n            fetch(url, { cache: 'no-store', credentials: 'omit', signal: ac ? ac.signal : undefined }).then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return bin ? r.arrayBuffer() : r.text(); })\n                .then(function (x) { if (!done) { done = true; clearTimeout(t); res(bin ? new Uint8Array(x) : x); } }, function (e) { if (!done) { done = true; clearTimeout(t); rej(e); } });\n        });\n    }\n    function bust() { return '?t=' + Math.floor(Date.now() / 300000); }\n    // ---- estado online assinado: revogar, renovar, limite de PCs (do ficheiro status.json ou, se houver, do servidor de registo) ----\n    var stMem = null;\n    function stLoad() { var j = jget(STK); return j && typeof j.raw === 'string' ? j : null; }\n    function stVerified() {\n        var j = stLoad(); if (!j) return Promise.resolve(null);\n        if (stMem && stMem.raw === j.raw) return Promise.resolve(stMem);\n        return VLC.envOpen(P.pk, 'VLS1', j.raw).then(function (b) { if (!b || b.kid !== P.kid) return null; stMem = { raw: j.raw, body: b, ok: Number(j.ok) || 0 }; return stMem; });\n    }\n    function acceptStatus(txt, b, nonce) {\n        if (!b || b.kid !== P.kid) return false;\n        if (nonce && b.q !== nonce) return false;\n        if (stMem && stMem.body && b.ts < stMem.body.ts) return false;          // nunca recua\n        var ok = trusted(); lsSet(STK, JSON.stringify({ raw: txt, ok: ok })); stMem = { raw: txt, body: b, ok: ok }; return true;\n    }\n    function refreshStatus(p) {\n        if (!P.repo && !P.reg) return Promise.resolve(false);\n        var viaStatic = function () {\n            if (!P.repo) return false;\n            return getBuf(P.repo + 'status.json' + bust(), 6000).then(function (txt) { return VLC.envOpen(P.pk, 'VLS1', txt).then(function (b) { return acceptStatus(txt, b, null); }); });\n        };\n        if (P.reg && p) {          // registo ao vivo (opcional): o servidor conta este PC e devolve o estado já assinado para ele\n            var q = VLC.hex(globalThis.crypto.getRandomValues(new Uint8Array(8)));\n            return VLC.sha256(VLC.utf8('vl-reg|' + VLC.hex(p.K))).then(function (pf) {          // prova de que é um VueLux licenciado (a chave do programa vem na licença): quem não tem licença não consegue encher o registo\n                var body = JSON.stringify({ cid: p.cid, kid: p.kid, dev: deviceId(), q: q, pf: VLC.hex(pf, 8), v: runVer || P.ver, h: location.hostname, nm: lsGet('tm-odoo-net-name') || '' });\n                return fetch(P.reg.replace(/\\/+$/, '') + '/v1/checkin', { method: 'POST', body: body, headers: { 'content-type': 'text/plain' }, cache: 'no-store', credentials: 'omit' });\n            })\n                .then(function (r) { if (!r.ok) throw new Error('http'); return r.text(); })\n                .then(function (txt) { return VLC.envOpen(P.pk, 'VLS1', txt).then(function (b) { return acceptStatus(txt, b, q); }); })\n                .catch(function () { return Promise.resolve(viaStatic()).catch(function () { return false; }); });\n        }\n        return Promise.resolve(viaStatic()).catch(function () { return false; });\n    }\n    function setExp(info, x) {\n        info.exp = x; info.expISO = VLC.isoOf(x);\n        if (x === VLC.NEVER) { info.state = 'ok'; info.daysLeft = 99999; info.graceLeft = 0; return; }\n        var nd = VLC.dayOf(trusted()); info.daysLeft = x - nd; info.graceLeft = x + P.grace - nd;\n        info.state = info.daysLeft >= 0 ? (info.daysLeft <= P.warn ? 'warn' : 'ok') : (info.graceLeft >= 0 ? 'grace' : 'expired');\n    }\n    function applyStatus(info) {\n        if (!info.p || (RANK[info.state] || 0) < 2) return Promise.resolve(info);\n        info.dev = deviceId();\n        return stVerified().then(function (s) {\n            if (!s) return info;\n            return Promise.all([VLC.statusKey(info.p.kid, info.p.cid), VLC.devHash(info.dev)]).then(function (k) {\n                var e = s.body.lic && s.body.lic[k[0]], now = trusted();\n                info.stTs = s.body.ts; info.stOk = s.ok;\n                if (s.body.stale > 0 && s.ok && (now - s.ok) / DAY > s.body.stale) { info.state = 'offline'; info.staleDays = s.body.stale; return info; }\n                if (!e) return info;\n                info.note = typeof e.n === 'string' ? e.n.slice(0, 200) : '';\n                if (e.r) { info.state = 'revoked'; return info; }\n                if (typeof e.x === 'number') setExp(info, e.x);\n                info.max = e.m | 0; info.devCount = (e.d || []).length;\n                if (info.max > 0 && (RANK[info.state] || 0) >= 3 && (e.d || []).indexOf(k[1]) < 0) info.state = 'device';\n                else if (info.max > 0) info.authorised = true;\n                return info;\n            });\n        });\n    }\n    function best() {          // das duas fontes (a guardada neste PC e a embutida) fica a melhor; depois aplica o estado online\n        var list = [lsGet(LSK), E].filter(function (x) { return x && x.length > 20; });\n        return Promise.all(list.map(evaluate)).then(function (r) {\n            var b = { state: 'none' };\n            r.forEach(function (x) { if ((RANK[x.state] || 0) > (RANK[b.state] || -1) || (x.state === b.state && x.exp > (b.exp || 0))) b = x; });\n            return applyStatus(b);\n        });\n    }\n    var cur = { state: 'none' }, running = false;\n    function dateTxt(info) { return info.expISO || ''; }\n    // ---- interface (só na janela principal) ----\n    function css() {\n        return '#vl-lic{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(15,18,24,.72);font-family:system-ui,-apple-system,\"Segoe UI\",Roboto,Arial,sans-serif}' +\n            '#vl-lic .c{width:min(460px,calc(100vw - 20px));max-height:calc(100vh - 20px);overflow:auto;background:#fff;color:#212529;border-radius:14px;padding:20px 18px 16px;box-shadow:0 20px 60px rgba(0,0,0,.5)}' +\n            '#vl-lic h2{margin:0 0 6px;font-size:19px}#vl-lic p{margin:0 0 10px;font-size:14px;color:#495057;line-height:1.4}' +\n            '#vl-lic label{display:block;font-size:12px;color:#6c757d;margin:8px 0 2px}#vl-lic input,#vl-lic textarea{width:100%;box-sizing:border-box;border:1px solid #ced4da;border-radius:10px;padding:9px;font:13px ui-monospace,Menlo,Consolas,monospace;background:#f8f9fa;color:#212529}#vl-lic textarea{min-height:92px}' +\n            '#vl-lic button{min-height:52px;border-radius:12px;border:1px solid #ced4da;background:#fff;color:#212529;font:600 16px system-ui,sans-serif;cursor:pointer;touch-action:manipulation;width:100%;margin-top:10px}#vl-lic button.ok{background:#714b67;border-color:#714b67;color:#fff}' +\n            '#vl-lic .e{min-height:20px;color:#b4141f;font-size:14px;font-weight:600;margin-top:8px}#vl-lic .g{color:#1f7a3a}#vl-lic .k{font-size:13px;color:#6c757d;margin-top:8px}#vl-lic .s{border:0;background:transparent;color:#6c757d;text-decoration:underline;font-size:13px;min-height:44px}' +\n            '#vl-pill{position:fixed;left:8px;bottom:8px;z-index:2147483646;border:0;border-radius:20px;padding:8px 14px;background:#714b67;color:#fff;font:600 14px system-ui,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.35);touch-action:manipulation}' +\n            '#vl-bar{position:fixed;left:0;right:0;bottom:0;z-index:2147483646;background:#b4141f;color:#fff;font:600 14px system-ui,sans-serif;padding:10px 14px;text-align:center}';\n    }\n    function modal(info) {\n        if (document.getElementById('vl-lic') || !document.body) return;\n        var key = ({ expired: 1, domain: 1, old: 1, invalid: 1, revoked: 1, device: 1, offline: 1 })[info.state] ? info.state : 'none';\n        var root = document.createElement('div'); root.id = 'vl-lic';\n        var st = document.createElement('style'); st.textContent = css();\n        var c = document.createElement('div'); c.className = 'c';\n        var h2 = document.createElement('h2'); h2.textContent = tx('t_' + key);\n        var p = document.createElement('p'); p.textContent = key === 'none' ? tx('p_none') : tx('p_' + key, { d: dateTxt(info), h: location.hostname, n: info.staleDays || '' }) + (info.note ? ' — ' + info.note : '');\n        var l1 = document.createElement('label'); l1.textContent = tx('dom');\n        var dom = document.createElement('input'); dom.value = location.hostname; dom.readOnly = true;\n        var ta = document.createElement('textarea'); ta.setAttribute('spellcheck', 'false'); ta.setAttribute('autocapitalize', 'characters'); ta.placeholder = 'VL1-XXXXXX-XXXXXX-…';\n        var err = document.createElement('div'); err.className = 'e';\n        var go = document.createElement('button'); go.type = 'button'; go.className = 'ok'; go.textContent = tx('activate');\n        var no = document.createElement('button'); no.type = 'button'; no.className = 's'; no.textContent = tx('close');\n        var l2 = document.createElement('label'); l2.textContent = tx('devid');\n        var did = document.createElement('input'); did.value = deviceId(); did.readOnly = true;\n        var cp = document.createElement('button'); cp.type = 'button'; cp.textContent = tx('copyreq');\n        cp.addEventListener('click', function () {\n            var txt = 'VueLux | ' + (info.p ? '#' + info.p.cid + ' | ' : '') + location.hostname + ' | ' + deviceId();\n            var done = function () { cp.textContent = tx('copied'); setTimeout(function () { cp.textContent = tx('copyreq'); }, 2000); };\n            try { navigator.clipboard.writeText(txt).then(done, function () { did.select(); document.execCommand('copy'); done(); }); } catch (e) { try { did.select(); document.execCommand('copy'); done(); } catch (e2) {} }\n        });\n        c.append(h2, p, l1, dom, l2, did, cp, ta, err, go);\n        if (P.contact) { var k = document.createElement('div'); k.className = 'k'; k.textContent = tx('contact') + ': ' + P.contact; c.append(k); }\n        c.append(no); root.append(st, c);\n        go.addEventListener('click', function () {\n            err.className = 'e'; err.textContent = tx('busy');\n            api.set(ta.value).then(function (r) {\n                if (r.ok) { err.className = 'e g'; err.textContent = tx('ok'); setTimeout(function () { location.reload(); }, 600); }\n                else err.textContent = r.why === 'older' ? tx('older') : r.why === 'domain' ? tx('p_domain', { h: location.hostname }) : r.why === 'old' ? tx('p_old') : tx('p_invalid');\n            });\n        });\n        no.addEventListener('click', function () { root.remove(); pill(info); });\n        document.body.appendChild(root);\n    }\n    function pill(info) {\n        if (document.getElementById('vl-pill') || !document.body) return;\n        var st = document.createElement('style'); st.id = 'vl-pillst'; st.textContent = css(); document.head.appendChild(st);\n        var b = document.createElement('button'); b.id = 'vl-pill'; b.type = 'button'; b.textContent = '🔑 VueLux';\n        b.addEventListener('click', function () { b.remove(); modal(cur); });\n        document.body.appendChild(b);\n    }\n    // ---- atualização online: manifesto assinado + payload cifrado, com cópia local (a licença decifra; um ficheiro público não serve a ninguém sem licença) ----\n    var runVer = P.ver || '', latestVer = '', pendingVer = '', lastAct = Date.now();\n    function chan() { return lsGet(CHK) === 'beta' ? 'beta' : 'stable'; }\n    function bad() { var b = jget(BADK); return Array.isArray(b) ? b : []; }\n    function ban(v) { var b = bad(); if (b.indexOf(v) < 0) b.push(v); lsSet(BADK, JSON.stringify(b.slice(-10))); dropUpd(); }\n    function cacheReq(v) { return new Request(location.origin + '/__vuelux/app-' + v); }\n    function cacheGet(v) { try { if (!window.caches) return Promise.resolve(null); return caches.open(CACHE).then(function (c) { return c.match(cacheReq(v)); }).then(function (r) { return r ? r.arrayBuffer().then(function (x) { return new Uint8Array(x); }) : null; }).catch(function () { return null; }); } catch (e) { return Promise.resolve(null); } }\n    function cachePut(v, bytes) { try { if (!window.caches) return Promise.resolve(false); return caches.open(CACHE).then(function (c) { return c.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return c.delete(k); })); }).then(function () { return c.put(cacheReq(v), new Response(bytes)); }); }).then(function () { return true; }, function () { return false; }); } catch (e) { return Promise.resolve(false); } }\n    function dropUpd() { try { lsSet(UPK, 'null'); if (window.caches) caches.delete(CACHE); } catch (e) {} }\n    function pickPayload(info) {          // → {ver, text}: a cópia mais nova guardada (se for de confiança) ou a que vem dentro deste ficheiro\n        var u = jget(UPK), bt = jget(BOOT), emb = function () { return decrypt(info).then(function (t) { return { ver: P.ver || '', text: t }; }); };\n        if (!(u && u.ver && VLC.cmpVer(u.ver, P.ver) > 0 && bad().indexOf(u.ver) < 0)) return emb();\n        if (bt && bt.ver === u.ver && !bt.ok && bt.n >= 2) { ban(u.ver); return emb(); }          // arrancou 2× sem nunca confirmar que ficou a funcionar: volta à versão anterior\n        return cacheGet(u.ver).then(function (bytes) {\n            if (!bytes) { dropUpd(); return emb(); }\n            return VLC.sha256(bytes).then(function (h) { return VLC.hex(h) === u.h ? VLC.decPayload(info.p.K, bytes) : null; }).then(function (t) {\n                if (!t) { dropUpd(); return emb(); }\n                lsSet(BOOT, JSON.stringify({ ver: u.ver, n: bt && bt.ver === u.ver ? (bt.n | 0) + 1 : 1, ok: false }));\n                return { ver: u.ver, text: t };\n            }, function () { dropUpd(); return emb(); });\n        });\n    }\n    function updInfo() { var u = jget(UPK) || {}; return { running: runVer, embedded: P.ver || '', latest: latestVer, chan: chan(), pending: pendingVer, cached: u.ver || '', lastCheck: Number(lsGet(LCK)) || 0, online: !!(P.repo || P.reg), bad: bad() }; }\n    function checkUpdate() {\n        if (!P.repo || !cur.p || !open(cur)) return Promise.resolve(updInfo());\n        return getBuf(P.repo + 'app/manifest.json' + bust(), 8000).then(function (txt) { return VLC.envOpen(P.pk, 'VLM1', txt); }).then(function (m) {\n            if (!m || m.kid !== P.kid) return updInfo();\n            var mts = Number(lsGet(MTK)) || 0; if (m.ts < mts) return updInfo();          // nunca aceita um manifesto mais antigo do que o último visto\n            lsSet(MTK, String(m.ts)); lsSet(LCK, String(trusted()));\n            if ((m.need | 0) > P.shell) return updInfo();          // exige um instalador mais novo\n            var e = m.ch && (m.ch[chan()] || m.ch.stable); if (!e || !e.ver) return updInfo();\n            latestVer = e.ver;\n            if (VLC.cmpVer(e.ver, P.ver) <= 0 || bad().indexOf(e.ver) >= 0) { var uu = jget(UPK); if (uu && uu.ver) dropUpd(); pendingVer = ''; return updInfo(); }\n            var u = jget(UPK); if (u && u.ver === e.ver && u.h === e.h) { if (VLC.cmpVer(e.ver, runVer) > 0) pendingVer = e.ver; return updInfo(); }\n            return getBuf(P.repo + e.u, 60000, true).then(function (bytes) {\n                if (e.z && bytes.length !== e.z) throw new Error('size');\n                return VLC.sha256(bytes).then(function (h) { if (VLC.hex(h) !== e.h) throw new Error('sha'); return VLC.decPayload(cur.p.K, bytes); }).then(function (t) {\n                    if (typeof t !== 'string' || t.length < 1000) throw new Error('payload');\n                    return cachePut(e.ver, bytes).then(function (ok) { if (!ok) throw new Error('cache'); lsSet(UPK, JSON.stringify({ ver: e.ver, h: e.h, ch: chan(), at: trusted() })); if (VLC.cmpVer(e.ver, runVer) > 0) pendingVer = e.ver; return updInfo(); });\n                });\n            });\n        }).catch(function () { return updInfo(); });\n    }\n    function quiet() { var h = new Date().getHours(); return h >= 4 && h < 6; }\n    // ---- API para o programa (só leitura/ativação; o programa não decide nada sobre a licença) ----\n    var api = {\n        v: 2,\n        state: function () { return cur.state; },\n        info: function () { return cur.p ? { state: cur.state, expISO: cur.expISO, daysLeft: cur.daysLeft, graceLeft: cur.graceLeft, cid: cur.cid, kid: cur.kid, host: cur.host, contact: cur.contact, warn: cur.warn, grace: cur.grace, dev: deviceId(), max: cur.max || 0, devCount: cur.devCount || 0, authorised: !!cur.authorised, note: cur.note || '', stOk: cur.stOk || 0, stTs: cur.stTs || 0 } : { state: cur.state, host: location.hostname, contact: P.contact || '', dev: deviceId() }; },\n        expDay: function () { return cur.p && cur.exp !== undefined ? cur.exp : 0; },\n        token: function () { return cur.token || ''; },\n        verify: function (tok) { return evaluate(tok).then(function (i) { return (i.state === 'ok' || i.state === 'warn' || i.state === 'grace' || i.state === 'expired') ? i : null; }); },\n        recheck: function () { return askServer().then(best).then(function (i) { cur = i; return api.info(); }); },\n        refresh: function () { return refreshStatus(cur.p).then(function () { return api.recheck(); }); },\n        device: function () { return deviceId(); },\n        update: function () { return updInfo(); },\n        check: function () { return checkUpdate(); },\n        setChannel: function (c) { lsSet(CHK, c === 'beta' ? 'beta' : 'stable'); return checkUpdate(); },\n        apply: function () { location.reload(); },\n        alive: function () { var b = jget(BOOT); if (b && b.ver === runVer) { b.ok = true; lsSet(BOOT, JSON.stringify(b)); } },\n        set: function (tok) {\n            var raw = VLC.parse(tok);\n            return evaluate(tok).then(function (i) {\n                if (!raw) return { ok: false, why: 'invalid' };\n                if (i.state === 'invalid' || i.state === 'none') return { ok: false, why: 'invalid' };\n                if (i.state === 'domain') return { ok: false, why: 'domain' };\n                if (i.state === 'old') return { ok: false, why: 'old' };\n                if (cur.p && (cur.state === 'ok' || cur.state === 'warn' || cur.state === 'grace') && i.exp <= cur.exp) return { ok: false, why: 'older' };\n                lsSet(LSK, raw.canon); cur = i; return { ok: true, info: api.info() };\n            });\n        }\n    };\n    try { Object.defineProperty(window, '__vl', { value: api, configurable: false, writable: false }); } catch (e) { try { window.__vl = api; } catch (e2) {} }\n    // ---- arranque ----\n    function open(info) { return info.state === 'ok' || info.state === 'warn' || info.state === 'grace'; }\n    function looksOdoo() { try { return typeof window.odoo !== 'undefined' || !!document.querySelector('script[src*=\"/web/assets\"],link[href*=\"/web/assets\"],meta[name=\"generator\"][content*=\"Odoo\"]') || /odoo/i.test(document.title); } catch (e) { return true; } }\n    function b2u(b) { var s = atob(b), u = new Uint8Array(s.length), i; for (i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }\n    function decrypt(info) {\n        return subtle.importKey('raw', info.p.K, 'AES-GCM', false, ['decrypt']).then(function (k) { return subtle.decrypt({ name: 'AES-GCM', iv: b2u(P.i), additionalData: enc.encode('vuelux2') }, k, b2u(P.c)); })\n            .then(function (buf) { return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer(); }).then(function (buf) { return dec.decode(buf); });\n    }\n    function run(code) {\n        try { var s = document.createElement('script'); s.textContent = 'window.__tmVlRan=1;\\n' + code; (document.head || document.documentElement).appendChild(s); s.remove(); } catch (e) {}\n        if (!window.__tmVlRan) { try { (new Function('window.__tmVlRan=1;\\n' + code))(); } catch (e) {} }\n        return Boolean(window.__tmVlRan);\n    }\n    ['pointerdown', 'keydown', 'touchstart'].forEach(function (ev) { try { window.addEventListener(ev, function () { lastAct = Date.now(); }, true); } catch (e) {} });\n    function showBar() { if (top() && document.body && !document.getElementById('vl-bar')) { var b = document.createElement('div'); b.id = 'vl-bar'; b.textContent = tx('bar'); document.body.appendChild(b); } }\n    function watch() {          // com o programa a correr: licença que acaba/é desativada a meio → desliga quando o ecrã ficar parado (nunca a meio do serviço)\n        var n = 0;\n        setInterval(function () {\n            n++;\n            (n % 30 === 0 ? refreshStatus(cur.p) : Promise.resolve()).then(function () { return api.recheck(); }).then(function () {\n                if (!open(cur)) { showBar(); if (Date.now() - lastAct > 120000) location.reload(); }\n                else if (pendingVer && Date.now() - lastAct > 600000 && quiet()) location.reload();          // atualização pronta: aplica-se de madrugada com o ecrã parado\n            });\n        }, 60000);\n        if (P.repo) { setTimeout(checkUpdate, 45000); setInterval(checkUpdate, 3 * 3600000); }\n    }\n    function start() {\n        if (E && !lsGet(LSK)) evaluate(E).then(function (i) { if (i.p && (RANK[i.state] || 0) >= 2) lsSet(LSK, i.p.canon); });          // a licença que veio no ficheiro também fica guardada neste PC (sobrevive a reinstalar com outro ficheiro)\n        askServer().then(best).then(function (info) {\n            if ((P.repo || P.reg) && info.p && (RANK[info.state] || 0) >= 2 && !stLoad()) return refreshStatus(info.p).then(best);          // primeiro arranque deste PC: espera (até ~6 s) pelo estado online\n            return info;\n        }).then(function (info) {\n            cur = info;\n            if (open(info)) {\n                pickPayload(info).then(function (pl) {\n                    runVer = pl.ver || runVer; running = run(pl.text);\n                    if (!running && pl.ver !== (P.ver || '')) { ban(pl.ver); runVer = P.ver || ''; return decrypt(info).then(function (t) { running = run(t); }); }\n                }).then(function () { if (running) watch(); }).catch(function () { cur = { state: 'old' }; if (top()) ready(function () { modal(cur); }); });\n            } else if (top()) {\n                ready(function () { setTimeout(function () { if (!looksOdoo()) return; modal(info); }, 1200); });\n                var tk = 0;\n                setInterval(function () { tk++; (tk % 4 === 0 ? refreshStatus(cur.p) : Promise.resolve()).then(best).then(function (i) { if (open(i)) location.reload(); }); }, 30000);          // outra janela/ecrã trouxe uma licença válida, ou o estado online mudou\n            }\n        });\n    }\n    try { start(); } catch (e) {}\n})();\n";
+(function () {
+'use strict';
+var $ = function (id) { return document.getElementById(id); };
+var enc = new TextEncoder(), dec = new TextDecoder(), subtle = crypto.subtle, DAY = 86400000, ITER = 600000;
+var POLL_MS = window.__VLAD_POLL_MS || 10000, POLL_N = window.__VLAD_POLL_N || 36;
+// ---------------------------------------------------------------- utilitários
+function b64(u) { var s = '', i; for (i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); }
+function unb64(s) { var b = atob(s), u = new Uint8Array(b.length), i; for (i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+function rand(n) { return crypto.getRandomValues(new Uint8Array(n)); }
+function show(id, on) { $(id).classList.toggle('hide', !on); }
+function err(id, msg) { var e = $(id); e.textContent = msg || ''; e.classList.toggle('hide', !msg); }
+function todayISO() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function addDays(iso, n) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso); return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]) + n * DAY).toISOString().slice(0, 10); }
+function addYear(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso); return new Date(Date.UTC(+m[1] + 1, +m[2] - 1, +m[3])).toISOString().slice(0, 10); }
+function daysBetween(a, b) { return Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / DAY); }
+function normDom(s) {
+    s = String(s || '').trim().toLowerCase().replace(/^[a-z][a-z0-9+.-]*:\/\//, '').split(/[\/?#]/)[0].replace(/:\d+$/, '').replace(/\.$/, '');
+    return /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/.test(s) ? s : '';
+}
+function normDoms(txt) { var out = [], bad = []; String(txt || '').split(/[,;\s]+/).forEach(function (x) { if (!x) return; var d = normDom(x); if (!d) bad.push(x); else if (out.indexOf(d) < 0) out.push(d); }); return { ok: out, bad: bad }; }
+function slug(s) { return String(s || 'cliente').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'cliente'; }
+function download(name, data, type) { var a = document.createElement('a'), u = URL.createObjectURL(new Blob([data], { type: type || 'text/plain;charset=utf-8' })); a.href = u; a.download = name; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(u); a.remove(); }, 1500); }
+function readFile(f) { return new Promise(function (res, rej) { var r = new FileReader(); r.onload = function () { res(String(r.result)); }; r.onerror = rej; r.readAsText(f); }); }
+function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+function h(tag, props) {
+    var e = document.createElement(tag), k, i;
+    for (k in (props || {})) { if (k === 'class') e.className = props[k]; else if (k === 'text') e.textContent = props[k]; else if (k.slice(0, 2) === 'on') e[k] = props[k]; else e.setAttribute(k, props[k]); }
+    for (i = 2; i < arguments.length; i++) if (arguments[i] != null) e.append(arguments[i]);
+    return e;
+}
+function ago(ms) { var s = Math.max(0, Math.round((Date.now() - ms) / 1000)); if (s < 90) return 'há ' + s + ' s'; if (s < 5400) return 'há ' + Math.round(s / 60) + ' min'; if (s < 129600) return 'há ' + Math.round(s / 3600) + ' h'; return 'há ' + Math.round(s / 86400) + ' dias'; }
+
+// ---------------------------------------------------------------- cifra da base e do token (frase-passe → PBKDF2 → AES-GCM)
+var KC = {};
+function keyFor(pass, saltB64, iter) {
+    var id = pass + '\u0000' + saltB64 + '|' + iter; if (KC[id]) return Promise.resolve(KC[id]);          // a chave em cache depende também da frase-passe (uma tentativa errada não pode estragar a certa)
+    return subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']).then(function (k) {
+        return subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt: unb64(saltB64), iterations: iter }, k, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    }).then(function (k) { KC[id] = k; return k; });
+}
+function sealWith(pass, saltB64, txt) {
+    return keyFor(pass, saltB64, ITER).then(function (key) {
+        var iv = rand(12);
+        return subtle.encrypt({ name: 'AES-GCM', iv: iv, additionalData: enc.encode('vuelux-adm1') }, key, enc.encode(txt)).then(function (ct) { return { v: 1, n: ITER, s: saltB64, i: b64(iv), c: b64(new Uint8Array(ct)) }; });
+    });
+}
+function openSealed(pass, o) {
+    if (!o || typeof o.s !== 'string' || typeof o.c !== 'string' || !(o.n >= 1000 && o.n <= 5000000)) return Promise.resolve(null);
+    return keyFor(pass, o.s, o.n).then(function (key) {
+        return subtle.decrypt({ name: 'AES-GCM', iv: unb64(o.i), additionalData: enc.encode('vuelux-adm1') }, key, unb64(o.c)).then(function (b) { return dec.decode(b); });
+    }).catch(function () { return null; });
+}
+
+// ---------------------------------------------------------------- estado
+var LSK = 'vlad-v1';
+var S = { cfg: {}, pat: null, adm: null, pass: null, salt: null, br: 'main', db: null, dbSha: null, dirty: false, local: false, sel: null, prog: null, intf: null, live: null, busy: false };
+function cfgLoad() { try { return JSON.parse(localStorage.getItem(LSK) || 'null') || {}; } catch (e) { return {}; } }
+function cfgSave() { try { localStorage.setItem(LSK, JSON.stringify(S.cfg)); } catch (e) {} }
+function validDb(o) { return o && o.key && o.key.d && o.key.x && o.key.y && o.payloadKey && Array.isArray(o.customers) && typeof o.kid === 'number' && o.nextId; }
+function privJwk() { var k = S.db.key; return { kty: 'EC', crv: 'P-256', x: k.x, y: k.y, d: k.d, ext: true }; }
+function pubKey() { return { x: S.db.key.x, y: S.db.key.y }; }
+function repoUrl() { var r = String(S.db.repo || ''); return r && !/\/$/.test(r) ? r + '/' : r; }
+
+// ---------------------------------------------------------------- GitHub (API REST, token do dono, só neste navegador)
+function ghFetch(method, path, body, raw) {
+    return fetch('https://api.github.com' + path, { method: method, cache: 'no-store', headers: Object.assign({ Authorization: 'Bearer ' + S.pat, Accept: raw ? 'application/vnd.github.raw+json' : 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }, body ? { 'Content-Type': 'application/json' } : {}), body: body ? JSON.stringify(body) : undefined });
+}
+function ghj(method, path, body) {
+    return ghFetch(method, path, body).then(function (r) { return r.text().then(function (t) { var d = null; try { d = t ? JSON.parse(t) : null; } catch (e) {} return { ok: r.ok, status: r.status, data: d }; }); });
+}
+function ghMsg(r) { return 'GitHub ' + r.status + (r.data && r.data.message ? ' — ' + r.data.message : ''); }
+function pubPath(p) { return '/repos/' + S.cfg.owner + '/' + S.cfg.pub + '/contents/' + p; }
+function getPubBytes(p) {          // null se não existe
+    return ghFetch('GET', pubPath(p) + '?ref=' + encodeURIComponent(S.br), null, true).then(function (r) { if (r.status === 404) return null; if (!r.ok) throw new Error('GitHub ' + r.status + ' ao ler ' + p); return r.arrayBuffer().then(function (b) { return new Uint8Array(b); }); });
+}
+function getPubText(p) { return getPubBytes(p).then(function (u) { return u ? dec.decode(u) : null; }); }
+function listPub(dir) {
+    return ghj('GET', pubPath(dir) + '?ref=' + encodeURIComponent(S.br)).then(function (r) { if (r.status === 404) return []; if (!r.ok) throw new Error(ghMsg(r)); return (r.data || []).map(function (x) { return x.name; }); });
+}
+function commitFiles(files, message) {          // um só commit atómico no repositório público
+    var o = S.cfg.owner, rp = S.cfg.pub, base = '/repos/' + o + '/' + rp, n = 0;
+    function attempt() {
+        n++;
+        return ghj('GET', base + '/git/ref/heads/' + S.br).then(function (ref) {
+            if (!ref.ok) throw new Error('Não encontro o ramo «' + S.br + '» do repositório público (' + ghMsg(ref) + ')');
+            var head = ref.data.object.sha;
+            return ghj('GET', base + '/git/commits/' + head).then(function (cm) {
+                if (!cm.ok) throw new Error(ghMsg(cm));
+                var tree = [];
+                return files.reduce(function (p, f) {
+                    return p.then(function () {
+                        if (f.del) { tree.push({ path: f.path, mode: '100644', type: 'blob', sha: null }); return; }
+                        return ghj('POST', base + '/git/blobs', { content: b64(f.bytes || enc.encode(f.text)), encoding: 'base64' }).then(function (bl) { if (!bl.ok) throw new Error(ghMsg(bl)); tree.push({ path: f.path, mode: '100644', type: 'blob', sha: bl.data.sha }); });
+                    });
+                }, Promise.resolve()).then(function () {
+                    return ghj('POST', base + '/git/trees', { base_tree: cm.data.tree.sha, tree: tree });
+                }).then(function (t) {
+                    if (!t.ok) throw new Error(ghMsg(t));
+                    return ghj('POST', base + '/git/commits', { message: message, tree: t.data.sha, parents: [head] });
+                }).then(function (c) {
+                    if (!c.ok) throw new Error(ghMsg(c));
+                    return ghj('PATCH', base + '/git/refs/heads/' + S.br, { sha: c.data.sha });
+                }).then(function (u) {
+                    if (u.ok) return true;
+                    if ((u.status === 422 || u.status === 409) && n < 3) return attempt();
+                    throw new Error(ghMsg(u));
+                });
+            });
+        });
+    }
+    return attempt();
+}
+function dataPath() { return '/repos/' + S.cfg.owner + '/' + S.cfg.data + '/contents/clientes.enc.json'; }
+function loadDbFile() {          // {none:true} | {sealed, sha}
+    return ghj('GET', dataPath()).then(function (r) {
+        if (r.status === 404) return { none: true };
+        if (!r.ok) throw new Error(ghMsg(r));
+        return ghFetch('GET', dataPath(), null, true).then(function (rr) { return rr.text(); }).then(function (t) { return { sealed: JSON.parse(t), sha: r.data.sha }; });
+    });
+}
+function saveDbFile() {
+    return sealWith(S.pass, S.salt, JSON.stringify(S.db)).then(function (sealed) {
+        var body = { message: 'base de clientes (cifrada)', content: b64(enc.encode(JSON.stringify(sealed))) };
+        if (S.dbSha) body.sha = S.dbSha;
+        return ghj('PUT', dataPath(), body);
+    }).then(function (r) {
+        if (!r.ok) { if (r.status === 409 || r.status === 422) throw new Error('A base foi alterada noutro sítio (outro navegador?). Recarrega a página e entra de novo para não perderes nada.'); throw new Error(ghMsg(r)); }
+        S.dbSha = r.data.content.sha; return true;
+    });
+}
+
+// ---------------------------------------------------------------- licenças: estado assinado, manifesto, instalador
+function stateOf(c) {
+    if (c.revoked) return { t: 'suspensa por ti', k: 'bad' };
+    if (c.exp === 'sem-fim' || c.exp === 'sem fim' || c.exp === 'never') return { t: 'sem fim', k: 'ok' };
+    var d = daysBetween(todayISO(), c.exp), warn = S.db.warn !== undefined ? S.db.warn : 14, gr = S.db.grace !== undefined ? S.db.grace : 7;
+    if (d > warn) return { t: 'ativa · faltam ' + d + ' dias', k: 'ok' };
+    if (d >= 0) return { t: 'a acabar · faltam ' + d + ' dias', k: 'warn' };
+    if (d >= -gr) return { t: 'em tolerância · desliga em ' + (gr + d) + ' dias', k: 'bad' };
+    return { t: 'desligada (expirou há ' + (-d) + ' dias)', k: 'bad' };
+}
+function mkToken(c) {
+    return Promise.all(c.domains.map(function (d) { return VLC.domHash(d); })).then(function (doms) {
+        return VLC.make(privJwk(), { kid: S.db.kid, cid: c.id, iss: VLC.dayFromISO(c.issued || todayISO()), exp: VLC.dayFromISO(c.exp), flags: c.flags || 0, doms: doms, K: VLC.unb64u(S.db.payloadKey) });
+    });
+}
+function statusObj(ts) {
+    var lic = {};
+    return S.db.customers.reduce(function (p, c) {
+        return p.then(function () {
+            var e = {}, m = +c.max || 0;
+            if (c.revoked) e.r = 1;
+            e.x = VLC.dayFromISO(c.exp);
+            return Promise.all(m > 0 ? (c.devices || []).map(function (d) { return VLC.devHash(d.id); }) : []).then(function (dh) {
+                if (m > 0) { e.m = m; e.d = dh; }
+                if (c.note) e.n = String(c.note).slice(0, 200);
+                return VLC.statusKey(S.db.kid, c.id);
+            }).then(function (k) { lic[k] = e; });
+        });
+    }, Promise.resolve()).then(function () { return { v: 1, kid: S.db.kid, ts: ts, stale: +S.db.stale || 0, lic: lic }; });
+}
+function envBody(txt) { try { return JSON.parse(JSON.parse(txt).b); } catch (e) { return null; } }
+function nextTs(oldTxt) { var ts = Math.floor(Date.now() / 1000), o = oldTxt ? envBody(oldTxt) : null; if (o && typeof o.ts === 'number') ts = Math.max(ts, o.ts + 1); return ts; }
+function splitProg(text) { var tag = '// ==/UserScript==', e = text.indexOf(tag) + tag.length; return { head: text.slice(0, e), body: text.slice(e).replace(/^\n+/, '') }; }
+function buildShell(prog) {
+    var sp = splitProg(prog.text), head = sp.head;
+    head = head.replace(/\/\/ @match\s+https:\/\/[^\n]*\n/g, '');
+    head = head.replace('// @run-at', function () { return '// @match        *://*/pos/*\n// @match        *://*/pos_preparation_display/*\n// @match        *://*/pos_customer_display/*\n// @run-at'; });
+    head = head.replace('// @description  ', function () { return '// @description  [LICENCIADO] '; });
+    return VLC.encPayload(VLC.unb64u(S.db.payloadKey), sp.body).then(function (blob) {
+        var c = b64(blob.slice(12)), parts = [], i, repo = repoUrl();
+        for (i = 0; i < c.length; i += 200) parts.push(c.slice(i, i + 200));
+        var P = JSON.stringify({ pk: pubKey(), kid: S.db.kid, warn: S.db.warn, grace: S.db.grace, contact: S.db.contact || '', ver: prog.ver, shell: 1, repo: repo, reg: S.db.reg || '', i: b64(blob.slice(0, 12)), c: '@@C@@' }).replace('"@@C@@"', function () { return '"' + parts.join('" +\n"') + '"'; });
+        var tpl = LOADER_TPL.replace('__PARAMS__', function () { return P; }).replace('/*@@CORE@@*/', function () { return document.getElementById('core-src').textContent; });
+        return head + '\n' + tpl + '\n';
+    });
+}
+function personalize(shell, c) {
+    return mkToken(c).then(function (tok) {
+        var s = shell.replace(/\/\/ @match\s+\*:\/\/\*\/[^\n]*\n/g, ''), lines = '';
+        c.domains.forEach(function (d) { ['pos', 'pos_preparation_display', 'pos_customer_display'].forEach(function (p) { lines += '// @match        https://' + d + '/' + p + '/*\n'; }); });
+        s = s.replace('// @run-at', function () { return lines + '// @run-at'; });
+        if (s.indexOf('var E = "";') < 0) throw new Error('ficheiro inesperado (já personalizado?)');
+        return s.replace('var E = "";', function () { return 'var E = "' + tok + '";'; });
+    });
+}
+
+// ---------------------------------------------------------------- servidor de registo (opcional)
+function wk(path, body) {
+    var base = String(S.db.reg || '').replace(/\/+$/, '');
+    if (!base || !S.adm) return Promise.reject(new Error('Falta o endereço ou a chave do servidor de registo (Definições).'));
+    return fetch(base + path, { method: body ? 'POST' : 'GET', cache: 'no-store', headers: { Authorization: 'Bearer ' + S.adm, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined })
+        .then(function (r) { if (!r.ok) throw new Error('servidor de registo: HTTP ' + r.status); return r.json(); });
+}
+function wkOn() { return !!(S.db && S.db.reg && S.adm); }
+function mirrorDevices() {          // o servidor aceita PCs novos até ao limite: copia para a base os autorizados e tira os que ele bloqueou (o que ele ainda não conhece fica)
+    if (!S.live) return;
+    S.db.customers.forEach(function (c) {
+        if (!(+c.max > 0)) return;
+        var mine = S.live.filter(function (d) { return d.cid === c.id; }), blocked = {}, before = c.devices.map(function (d) { return d.id; }).sort().join(',');
+        mine.forEach(function (d) { if (!d.ok) blocked[d.dev] = 1; });
+        var list = c.devices.filter(function (d) { return !blocked[d.id]; });
+        mine.forEach(function (d) { if (d.ok && !list.some(function (x) { return x.id === d.dev; })) list.push({ id: d.dev, name: d.nm || '', since: new Date(d.first || Date.now()).toISOString().slice(0, 10) }); });
+        if (list.map(function (d) { return d.id; }).sort().join(',') !== before) { c.devices = list; S.dirty = true; }
+    });
+}
+function liveReload() {
+    if (!wkOn()) { S.live = null; return Promise.resolve(); }
+    return wk('/v1/admin/devices').then(function (j) { S.live = j.devices || []; S.liveNow = j.now || Date.now(); mirrorDevices(); }).catch(function (e) { S.live = null; throw e; });
+}
+function wkPush() {
+    return VLC.sha256(VLC.utf8('vl-reg|' + VLC.hex(VLC.unb64u(S.db.payloadKey)))).then(function (pf) {
+        return wk('/v1/admin/config', { kid: S.db.kid, stale: +S.db.stale || 0, rk: VLC.hex(pf, 8), customers: S.db.customers.map(function (c) { var e = { cid: c.id, x: VLC.dayFromISO(c.exp), m: +c.max || 0, devs: (+c.max > 0 ? (c.devices || []) : []).map(function (d) { return { dev: d.id, nm: d.name || '' }; }) }; if (c.revoked) e.r = 1; if (c.note) e.n = String(c.note).slice(0, 200); return e; }) });
+    });
+}
+
+// ---------------------------------------------------------------- mensagens e botão principal
+function msg(text, kind) { var e = $('t-msg'); e.textContent = text || ''; e.className = 'box ' + (kind || '') + (text ? '' : ' hide'); }
+function markDirty(v) { S.dirty = v !== false; renderTop(); }
+window.addEventListener('beforeunload', function (e) { if (S.dirty) { e.preventDefault(); e.returnValue = ''; } });
+function renderTop() {
+    if (!S.db) return;
+    $('t-conn').textContent = S.local ? '📄 Modo ficheiro (sem GitHub)' : '☁ Ligado a ' + S.cfg.owner + '/' + S.cfg.pub;
+    $('t-sub').textContent = S.local ? 'Podes gerir clientes e licenças; publicar versões exige ligar ao GitHub.' : '';
+    $('t-save').textContent = S.local ? '💾 Guardar ficheiro' : '☁ Guardar e publicar';
+    $('t-save').disabled = S.busy || (!S.dirty && !S.local);
+    show('t-dirty', S.dirty);
+}
+function busy(on) { S.busy = on; renderTop(); }
+function saveAll() {
+    if (!S.db || S.busy) return Promise.resolve();
+    if (S.local) { download('clientes-vuelux.json', JSON.stringify(S.db, null, 1), 'application/json'); markDirty(false); return Promise.resolve(); }
+    busy(true); msg('A guardar a base cifrada…');
+    var ts = 0;
+    return saveDbFile().then(function () {
+        msg('A publicar o estado dos clientes…');
+        return getPubText('status.json');
+    }).then(function (old) {
+        ts = nextTs(old);
+        return statusObj(ts).then(function (o) { return VLC.envSign(privJwk(), 'VLS1', o); });
+    }).then(function (txt) {
+        return commitFiles([{ path: 'status.json', text: txt }], 'estado dos clientes');
+    }).then(function () {
+        if (!wkOn()) return null;
+        msg('A avisar o servidor de registo…');
+        return wkPush().catch(function (e) { msg('✓ Guardado e publicado no GitHub, mas o servidor de registo não respondeu (' + e.message + ').', 'warn'); throw { soft: 1 }; });
+    }).then(function () {
+        S.dirty = false; msg('✓ Guardado e publicado. Pode demorar 1–2 minutos até o GitHub o mostrar aos ecrãs.', 'ok');
+        pollLive('status.json', ts); render();
+    }).catch(function (e) { if (e && e.soft) { S.dirty = false; render(); return; } msg('✗ ' + (e && e.message || e), 'bad'); })
+      .then(function () { busy(false); });
+}
+function pollLive(path, ts) {          // confirma que o GitHub Pages já serve o ficheiro novo
+    var url = repoUrl(); if (!url) return; var n = 0;
+    (function once() {
+        n++;
+        fetch(url + path + '?cb=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : null; }).then(function (t) {
+            var o = t && envBody(t);
+            if (o && o.ts === ts) { $('t-sub').textContent = '✓ Já está no ar (' + path + ').'; return; }
+            $('t-sub').textContent = 'A aguardar que o GitHub Pages mostre a versão nova…';
+            if (n < POLL_N) setTimeout(once, POLL_MS); else $('t-sub').textContent = 'O GitHub ainda não mostrou a versão nova; espera mais um pouco e volta a abrir a página (Pages → Settings, se demorar muito).';
+        }).catch(function () { if (n < POLL_N) setTimeout(once, POLL_MS); });
+    })();
+}
+
+// ---------------------------------------------------------------- entrada
+function lkErr(m) { err('lk-err', m); }
+function lkInfo(m) { var e = $('lk-info'); e.textContent = m || ''; e.className = 'box' + (m ? '' : ' hide'); }
+function initLock() {
+    S.cfg = cfgLoad();
+    var known = !!(S.cfg.pat && S.cfg.owner);
+    show('lk-first', !known); show('lk-pass2r', !known); show('lk-forget', known);
+    $('lk-title').textContent = known ? 'Entrar' : 'Ligar ao GitHub';
+    $('lk-go').textContent = known ? 'Entrar' : 'Ligar';
+    if (!known) {
+        var m = /^([a-z0-9-]+)\.github\.io$/i.exec(location.hostname), pth = location.pathname.split('/').filter(Boolean)[0];
+        if (m) { $('lk-owner').value = m[1]; if (pth && pth.indexOf('.') < 0) $('lk-pub').value = pth; }
+    }
+}
+function goApp() {
+    show('c-lock', false); show('c-nodb', false); show('app', true);
+    var db = S.db; db.customers.forEach(function (c) { if (!Array.isArray(c.devices)) c.devices = []; if (c.max === undefined) c.max = 0; });
+    if (db.warn === undefined) db.warn = 14; if (db.grace === undefined) db.grace = 7; if (db.stale === undefined) db.stale = 0;
+    if (!S.local && !db.repo) { db.repo = 'https://' + S.cfg.owner + '.github.io/' + S.cfg.pub + '/'; S.dirty = true; }
+    $('i-contact').value = db.contact || ''; $('i-warn').value = db.warn; $('i-grace').value = db.grace; $('i-stale').value = db.stale; $('s-repo').value = db.repo || ''; $('s-reg').value = db.reg || '';
+    S.sel = null; render(); setTab('cli');
+    if (wkOn()) liveReload().then(render).catch(function (e) { msg('Não consegui falar com o servidor de registo: ' + e.message, 'warn'); });
+}
+function afterPat() {          // com o token certo: procura a base no repositório privado
+    return ghj('GET', '/repos/' + S.cfg.owner + '/' + S.cfg.data).then(function (r) {
+        if (r.status === 404) throw new Error('O repositório privado «' + S.cfg.owner + '/' + S.cfg.data + '» não existe ou o token não tem acesso a ele.');
+        if (r.status === 401) throw new Error('O token não é aceite pelo GitHub (expirou ou está errado).');
+        if (!r.ok) throw new Error(ghMsg(r));
+        return ghj('GET', '/repos/' + S.cfg.owner + '/' + S.cfg.pub);
+    }).then(function (r) {
+        if (r.status === 404) throw new Error('O repositório público «' + S.cfg.owner + '/' + S.cfg.pub + '» não existe ou o token não tem acesso a ele.');
+        if (!r.ok) throw new Error(ghMsg(r));
+        S.br = (r.data && r.data.default_branch) || 'main';
+        return loadDbFile();
+    }).then(function (f) {
+        if (f.none) { S.dbSha = null; show('c-lock', false); show('c-nodb', true); return null; }
+        return openSealed(S.pass, f.sealed).then(function (txt) {
+            if (txt === null) throw new Error('Frase-passe errada (ou a base foi cifrada com outra).');
+            var o = JSON.parse(txt); if (!validDb(o)) throw new Error('A base guardada no GitHub não é válida.');
+            S.db = o; S.dbSha = f.sha; S.salt = f.sealed.s; goApp();
+        });
+    });
+}
+$('lk-go').onclick = function () {
+    lkErr(''); lkInfo('');
+    var known = !!(S.cfg.pat && S.cfg.owner), pass = $('lk-pass').value;
+    if (S.busy) return; S.busy = true; $('lk-go').disabled = true;
+    var p;
+    if (known) {
+        p = openSealed(pass, S.cfg.pat).then(function (pat) {
+            if (pat === null) throw new Error('Frase-passe errada.');
+            S.pat = pat; S.pass = pass; S.salt = S.cfg.pat.s; S.br = S.cfg.branch || 'main';
+            if (S.cfg.adm) return openSealed(pass, S.cfg.adm).then(function (a) { S.adm = a; });
+        }).then(afterPat);
+    } else {
+        var owner = $('lk-owner').value.trim(), pub = $('lk-pub').value.trim(), data = $('lk-data').value.trim(), pat = $('lk-pat').value.trim();
+        if (!owner || !pub || !data || !pat) { S.busy = false; $('lk-go').disabled = false; return lkErr('Preenche o utilizador, os dois repositórios e o token.'); }
+        if (pass.length < 12) { S.busy = false; $('lk-go').disabled = false; return lkErr('A frase-passe tem de ter pelo menos 12 caracteres.'); }
+        if ($('lk-pass2').value !== pass) { S.busy = false; $('lk-go').disabled = false; return lkErr('As duas frases-passe não são iguais.'); }
+        S.cfg = { owner: owner, pub: pub, data: data }; S.pat = pat; S.pass = pass; S.salt = b64(rand(16));
+        p = afterPat().then(function () {
+            return sealWith(S.pass, S.salt, S.pat).then(function (sl) { S.cfg.pat = sl; S.cfg.branch = S.br; cfgSave(); });
+        });
+    }
+    p.catch(function (e) { lkErr(e && e.message || String(e)); }).then(function () { S.busy = false; $('lk-go').disabled = false; });
+};
+$('lk-pass').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('lk-go').click(); });
+$('lk-forget').onclick = function () { if (!confirm('Esquecer o token e a ligação neste navegador? A base continua no GitHub.')) return; try { localStorage.removeItem(LSK); } catch (e) {} S.cfg = {}; initLock(); };
+$('lk-local').onclick = function () { S.local = true; show('c-lock', false); show('c-nodb', true); $('nd-new').textContent = '✨ Criar uma base nova'; };
+function newDb() {
+    return subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']).then(function (kp) { return subtle.exportKey('jwk', kp.privateKey); }).then(function (j) {
+        return { v: 1, kid: 1, contact: '', warn: 14, grace: 7, stale: 0, repo: '', reg: '', key: { d: j.d, x: j.x, y: j.y }, payloadKey: VLC.b64u(rand(16)), customers: [], nextId: 1 };
+    });
+}
+$('nd-new').onclick = function () {
+    if (!confirm('Criar uma base NOVA gera chaves novas: os ficheiros e licenças que já entregaste (da base antiga) deixam de servir. Continuar?')) return;
+    newDb().then(function (o) { S.db = o; S.dirty = true; if (!S.local && !S.salt) S.salt = b64(rand(16)); goApp(); });
+};
+$('nd-import').onclick = function () { $('f-imp').dataset.mode = 'nodb'; $('f-imp').click(); };
+$('s-imp').onclick = function () { $('f-imp').dataset.mode = 'set'; $('f-imp').click(); };
+$('f-imp').onchange = function () {
+    var f = this.files[0], mode = this.dataset.mode; this.value = ''; if (!f) return;
+    readFile(f).then(function (t) {
+        var o = JSON.parse(t);
+        if (o && typeof o.c === 'string' && typeof o.s === 'string') return openSealed(S.pass || '', o).then(function (x) { if (x === null) throw new Error('Está cifrada com outra frase-passe.'); return JSON.parse(x); });
+        return o;
+    }).then(function (o) {
+        if (!validDb(o)) throw new Error('Este ficheiro não é uma base de clientes do VueLux.');
+        if (mode === 'set' && !confirm('Substituir a base aberta pela do ficheiro? (A atual não é guardada em lado nenhum.)')) return;
+        S.db = o; S.dirty = true; if (!S.local && !S.salt) S.salt = b64(rand(16)); goApp();
+    }).catch(function (e) { err(mode === 'set' ? 's-err' : 'nd-err', e.message || 'Não consegui ler este ficheiro.'); });
+};
+$('t-lock').onclick = function () { if (S.dirty && !confirm('Há alterações por guardar. Bloquear mesmo assim?')) return; S.dirty = false; location.reload(); };
+$('t-save').onclick = saveAll;
+
+// ---------------------------------------------------------------- separadores
+function setTab(t) {
+    Array.prototype.forEach.call($('tabs').children, function (b) { b.classList.toggle('on', b.dataset.t === t); });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-p]'), function (p) { p.classList.toggle('hide', p.dataset.p !== t); });
+    if (t === 'ver') loadVersions(); if (t === 'ins') renderLinks(); if (t === 'live') renderLive();
+}
+$('tabs').onclick = function (e) { var b = e.target.closest('button'); if (b) setTab(b.dataset.t); };
+function render() { renderTop(); renderStats(); renderList(); if (S.sel) fillDetail(); renderLive(); }
+function renderStats() {
+    var c = S.db.customers, n = { ok: 0, warn: 0, bad: 0 }, pcs = 0;
+    c.forEach(function (x) { n[stateOf(x).k]++; pcs += (x.devices || []).length; });
+    var box = $('stats'); box.innerHTML = '';
+    [[c.length, 'clientes'], [n.ok, 'ativos'], [n.warn, 'a acabar'], [n.bad, 'em tolerância, expirados ou suspensos'], [pcs, 'PCs autorizados (com limite)']].forEach(function (a) { box.append(h('div', { class: 'stat' }, h('b', { text: String(a[0]) }), h('span', { text: a[1] }))); });
+}
+function renderList() {
+    var tb = $('t-cl').tBodies[0]; tb.innerHTML = '';
+    S.db.customers.forEach(function (c) {
+        var s = stateOf(c), tr = h('tr', { class: 'cl' + (S.sel === c.id ? ' sel' : '') });
+        var pcs = (+c.max > 0) ? (c.devices.length + ' / ' + c.max) : 'sem limite';
+        [c.id, c.name, c.domains.join(', '), c.exp === 'sem-fim' ? 'sem fim' : c.exp, pcs].forEach(function (v, i) { tr.append(h('td', { text: String(v), class: i === 2 ? 'mono' : '' })); });
+        tr.append(h('td', null, h('span', { class: 'chip ' + s.k, text: s.t })));
+        tr.onclick = function () { select(c.id); }; tb.append(tr);
+    });
+    show('cl-empty', S.db.customers.length === 0); $('t-cl').classList.toggle('hide', S.db.customers.length === 0);
+}
+function cur() { return S.db.customers.filter(function (c) { return c.id === S.sel; })[0]; }
+function select(id) { S.sel = id; renderList(); fillDetail(); $('detail').scrollIntoView && $('detail').scrollIntoView({ block: 'nearest' }); }
+function fillDetail() {
+    var c = cur(); show('detail', !!c); if (!c) return;
+    $('d-title').textContent = 'Cliente n.º ' + c.id + ' — ' + c.name;
+    $('d-name').value = c.name; $('d-dom').value = c.domains.join(', ');
+    var never = c.exp === 'sem-fim'; $('d-never').checked = never; $('d-exp').value = never ? '' : c.exp; $('d-exp').disabled = never;
+    $('d-max').value = c.max || 0; $('d-note').value = c.note || ''; $('d-rev').checked = !!c.revoked;
+    err('d-err', ''); err('d-pcerr', ''); $('d-msg').textContent = ''; $('d-tok').value = 'A gerar…';
+    renderDevices(c);
+    var id = c.id; mkToken(c).then(function (t) { if (S.sel === id) $('d-tok').value = t; });
+}
+function liveFor(c, dev) { return (S.live || []).filter(function (d) { return d.cid === c.id && d.dev === dev; })[0]; }
+function renderDevices(c) {
+    var tb = $('t-dev').tBodies[0]; tb.innerHTML = '';
+    var max = +c.max || 0, pend = (S.live || []).filter(function (d) { return d.cid === c.id && !d.ok; });
+    c.devices.forEach(function (d) {
+        var lv = liveFor(c, d.id), tr = h('tr');
+        tr.append(h('td', { text: d.id, class: 'mono' }), h('td', { text: d.name || '' }), h('td', { text: d.since || '' }), h('td', { text: lv && lv.last ? ago(lv.last) : '—' }));
+        tr.append(h('td', null, h('button', { class: 'sm danger', text: 'Retirar', onclick: function () { removeDevice(c, d.id); } })));
+        tb.append(tr);
+    });
+    pend.forEach(function (d) {
+        var tr = h('tr');
+        tr.append(h('td', { text: d.dev, class: 'mono' }), h('td', { text: (d.nm || '') + ' (à espera)' }), h('td', { text: '' }), h('td', { text: d.last ? ago(d.last) : '—' }));
+        tr.append(h('td', null, h('button', { class: 'sm', text: 'Autorizar', onclick: function () { authorise(c, d.dev, d.nm); } })));
+        tb.append(tr);
+    });
+    show('t-dev', c.devices.length + pend.length > 0);
+    $('dev-note').textContent = max === 0 ? 'Sem limite: qualquer PC com a licença funciona; esta lista não é usada. Põe um número em «Máximo de PCs» para controlar.'
+        : (c.devices.length >= max ? 'Limite atingido (' + c.devices.length + ' / ' + max + '): um PC novo fica bloqueado até libertares um lugar («Retirar») ou subires o limite.' : c.devices.length + ' de ' + max + ' PCs autorizados.');
+}
+function removeDevice(c, id) {
+    if (!confirm('Retirar o PC ' + id + ' deste cliente? Esse PC deixa de funcionar assim que o estado for publicado e o ecrã o ler.')) return;
+    var after = function () { c.devices = c.devices.filter(function (d) { return d.id !== id; }); if (S.live) S.live = S.live.map(function (d) { return d.cid === c.id && d.dev === id ? Object.assign({}, d, { ok: 0 }) : d; }); markDirty(true); renderDevices(c); renderList(); renderStats(); };
+    if (wkOn()) wk('/v1/admin/dev', { cid: c.id, dev: id, op: 'block' }).then(after).catch(function (e) { err('d-pcerr', 'Servidor de registo: ' + e.message); }); else after();
+}
+function authorise(c, id, nm) {
+    id = String(id || '').trim().toUpperCase();
+    if (!VLC.okDeviceId(id)) return err('d-pcerr', 'ID de PC inválido (formato PC-XXXX-XXXX-XXXX; letras A–Z e números 2–7).');
+    if (c.devices.some(function (d) { return d.id === id; })) return err('d-pcerr', 'Esse PC já está autorizado.');
+    if (+c.max > 0 && c.devices.length >= +c.max) return err('d-pcerr', 'Limite de ' + c.max + ' PCs atingido: retira um PC ou aumenta o «Máximo de PCs».');
+    var after = function () { c.devices.push({ id: id, name: String(nm || '').trim().slice(0, 40), since: todayISO() }); if (S.live) S.live = S.live.map(function (d) { return d.cid === c.id && d.dev === id ? Object.assign({}, d, { ok: 1 }) : d; }); err('d-pcerr', ''); $('d-pcid').value = ''; $('d-pcn').value = ''; markDirty(true); renderDevices(c); renderList(); renderStats(); };
+    if (wkOn()) wk('/v1/admin/dev', { cid: c.id, dev: id, op: 'ok', nm: nm || '' }).then(after).catch(function (e) { err('d-pcerr', 'Servidor de registo: ' + e.message); }); else after();
+}
+$('d-pcadd').onclick = function () { var c = cur(); if (c) authorise(c, $('d-pcid').value, $('d-pcn').value); };
+$('d-max').onchange = $('d-max').oninput = function () { var c = cur(); if (!c) return; c.max = Math.max(0, Math.min(999, parseInt(this.value, 10) || 0)); markDirty(true); renderDevices(c); renderList(); renderStats(); };
+$('d-note').oninput = function () { var c = cur(); if (!c) return; c.note = this.value.slice(0, 200); markDirty(true); };
+$('d-rev').onchange = function () {
+    var c = cur(); if (!c) return;
+    if (this.checked && !confirm('Suspender «' + c.name + '»? Os ecrãs dele desligam-se assim que o estado for publicado e eles o lerem (aparece o ecrã a pedir licença).')) { this.checked = false; return; }
+    c.revoked = this.checked; markDirty(true); renderList(); renderStats();
+};
+$('d-never').onchange = function () { $('d-exp').disabled = this.checked; };
+function bump(fn) { var c = cur(); if (!c) return; var base = (c.exp === 'sem-fim' || c.exp < todayISO()) ? todayISO() : c.exp; $('d-never').checked = false; $('d-exp').disabled = false; $('d-exp').value = fn(base); }
+$('d-p30').onclick = function () { bump(function (b) { return addDays(b, 30); }); };
+$('d-p1y').onclick = function () { bump(addYear); };
+$('d-save').onclick = function () {
+    var c = cur(); if (!c) return; err('d-err', '');
+    var nm = $('d-name').value.trim(), dm = normDoms($('d-dom').value), never = $('d-never').checked, ex = $('d-exp').value;
+    if (!nm) return err('d-err', 'Falta o nome do cliente.');
+    if (!dm.ok.length || dm.bad.length) return err('d-err', dm.bad.length ? 'Domínio não válido: ' + dm.bad.join(', ') : 'Falta o domínio.');
+    if (dm.ok.length > 4) return err('d-err', 'No máximo 4 domínios por licença.');
+    if (!never && !/^\d{4}-\d{2}-\d{2}$/.test(ex)) return err('d-err', 'Escolhe a data de fim (ou marca «sem data de fim»).');
+    c.name = nm; c.domains = dm.ok; c.exp = never ? 'sem-fim' : ex; c.issued = todayISO();
+    markDirty(true); render(); $('d-msg').textContent = '✓ Aplicado. Falta «Guardar e publicar». Se mudaste o domínio, envia ao cliente a licença nova (acima).';
+};
+$('d-copy').onclick = function () { var t = $('d-tok').value; function fb() { $('d-tok').select(); try { document.execCommand('copy'); $('d-msg').textContent = '✓ Licença copiada.'; } catch (e) {} } try { navigator.clipboard.writeText(t).then(function () { $('d-msg').textContent = '✓ Licença copiada.'; }, fb); } catch (e) { fb(); } };
+$('d-del').onclick = function () { var c = cur(); if (!c || !confirm('Apagar o cliente «' + c.name + '»? Ele deixa de aparecer no estado (o ecrã dele fica sem estado online, e a licença que tem continua a valer até ao fim da data).')) return; S.db.customers = S.db.customers.filter(function (x) { return x.id !== c.id; }); S.sel = null; markDirty(true); render(); };
+$('d-file').onclick = function () {
+    var c = cur(); if (!c) return; $('d-msg').textContent = 'A preparar…';
+    var src = S.local ? (S.prog ? buildShell(S.prog) : Promise.reject(new Error('Escolhe primeiro o ficheiro do VueLux (separador Versões).'))) : getPubText('install/vuelux.user.js').then(function (t) { if (!t) throw new Error('Ainda não há instalador publicado: publica uma versão estável (separador Versões).'); return t; });
+    src.then(function (u) { return personalize(u, c); }).then(function (t) { download('vuelux-' + slug(c.name) + '.user.js', t, 'text/javascript;charset=utf-8'); $('d-msg').textContent = '✓ Ficheiro do cliente descarregado (já tem a licença e o domínio).'; }).catch(function (e) { $('d-msg').textContent = '✗ ' + (e.message || e); });
+};
+$('n-exp').value = addYear(todayISO());
+$('n-never').onchange = function () { $('n-exp').disabled = this.checked; };
+$('n-add').onclick = function () {
+    err('n-err', ''); var nm = $('n-name').value.trim(), dm = normDoms($('n-dom').value), never = $('n-never').checked, ex = $('n-exp').value, mx = Math.max(0, parseInt($('n-max').value, 10) || 0);
+    if (!nm) return err('n-err', 'Falta o nome do cliente.');
+    if (!dm.ok.length || dm.bad.length) return err('n-err', dm.bad.length ? 'Domínio não válido: ' + dm.bad.join(', ') : 'Falta o domínio do Odoo dele.');
+    if (dm.ok.length > 4) return err('n-err', 'No máximo 4 domínios por licença.');
+    if (!never && !/^\d{4}-\d{2}-\d{2}$/.test(ex)) return err('n-err', 'Escolhe a data de fim.');
+    var c = { id: S.db.nextId++, name: nm, domains: dm.ok, exp: never ? 'sem-fim' : ex, issued: todayISO(), flags: 0, max: mx, devices: [] };
+    S.db.customers.push(c); $('n-name').value = ''; $('n-dom').value = ''; markDirty(true); render(); select(c.id);
+};
+
+// ---------------------------------------------------------------- definições
+function readSettings() {
+    var d = S.db; d.contact = $('i-contact').value.trim(); d.warn = Math.max(0, Math.min(90, parseInt($('i-warn').value, 10) || 0)); d.grace = Math.max(0, Math.min(90, parseInt($('i-grace').value, 10) || 0)); d.stale = Math.max(0, Math.min(365, parseInt($('i-stale').value, 10) || 0));
+    d.repo = $('s-repo').value.trim(); d.reg = $('s-reg').value.trim().replace(/\/+$/, '');
+}
+['i-contact', 'i-warn', 'i-grace', 'i-stale', 's-repo', 's-reg'].forEach(function (i) { $(i).oninput = function () { if (!S.db) return; readSettings(); markDirty(true); renderList(); renderStats(); }; });
+$('s-adm').onchange = function () {
+    var v = this.value.trim(); S.adm = v || null;
+    if (S.local || !S.pass) return;
+    (v ? sealWith(S.pass, S.salt, v) : Promise.resolve(null)).then(function (sl) { if (sl) S.cfg.adm = sl; else delete S.cfg.adm; cfgSave(); });
+};
+$('s-test').onclick = function () {
+    var o = $('s-out'); o.className = 'box'; o.textContent = 'A testar…';
+    if (S.db.reg && !S.adm) S.adm = $('s-adm').value.trim() || null;
+    liveReload().then(function () { o.className = 'box ok'; o.textContent = '✓ O servidor de registo respondeu (' + (S.live || []).length + ' PC(s) registados).'; render(); }).catch(function (e) { o.className = 'box bad'; o.textContent = '✗ ' + e.message; });
+};
+$('s-gen').onclick = function () { var v = VLC.b64u(rand(32)); $('s-adm').value = v; $('s-adm').type = 'text'; $('s-adm').onchange(); var t = $('s-show'); t.classList.remove('hide'); t.value = 'ADMIN_TOKEN (cola isto na Cloudflare, em Variables and Secrets, como Secret):\n' + v; };
+$('s-jwk').onclick = function () {
+    if (!confirm('Vais ver a CHAVE PRIVADA de assinatura. Mostra-a só neste ecrã, cola-a na Cloudflare (Secret «SIGN_JWK») e fecha. Continuar?')) return;
+    var k = S.db.key, t = $('s-show'); t.classList.remove('hide'); t.value = 'SIGN_JWK (cola isto na Cloudflare como Secret):\n' + JSON.stringify({ kty: 'EC', crv: 'P-256', x: k.x, y: k.y, d: k.d });
+};
+$('s-bkp').onclick = function () { download('clientes-vuelux.json', JSON.stringify(S.db, null, 1), 'application/json'); };
+$('s-bkpc').onclick = function () { if (!S.pass) return err('s-err', 'A cópia cifrada precisa de uma frase-passe (modo GitHub).'); sealWith(S.pass, S.salt || b64(rand(16)), JSON.stringify(S.db)).then(function (sl) { download('clientes-vuelux.enc.json', JSON.stringify(sl), 'application/json'); }); };
+$('s-pass').onclick = function () { show('s-passrow', true); };
+$('s-npgo').onclick = function () {
+    err('s-err', ''); var a = $('s-np1').value, b = $('s-np2').value;
+    if (S.local || !S.pat) return err('s-err', 'Só no modo GitHub.');
+    if (a.length < 12) return err('s-err', 'A nova frase-passe tem de ter pelo menos 12 caracteres.'); if (a !== b) return err('s-err', 'As duas frases-passe não são iguais.');
+    var ns = b64(rand(16)), old = { p: S.pass, s: S.salt };
+    S.pass = a; S.salt = ns;
+    saveDbFile().then(function () { return sealWith(S.pass, S.salt, S.pat); }).then(function (sl) { S.cfg.pat = sl; return S.adm ? sealWith(S.pass, S.salt, S.adm).then(function (x) { S.cfg.adm = x; }) : null; }).then(function () { cfgSave(); show('s-passrow', false); $('s-np1').value = $('s-np2').value = ''; msg('✓ Frase-passe mudada. Usa a nova da próxima vez.', 'ok'); })
+        .catch(function (e) { S.pass = old.p; S.salt = old.s; err('s-err', e.message || String(e)); });
+};
+
+// ---------------------------------------------------------------- versões
+function loadVersions() {
+    var dl = $('v-cur'); dl.innerHTML = ''; show('v-promote', false); show('v-dropbeta', false);
+    if (S.local) { dl.append(h('dt', { text: 'Modo ficheiro' }), h('dd', { text: 'Liga ao GitHub para publicar versões.' })); return; }
+    dl.append(h('dt', { text: 'A ler…' }), h('dd'));
+    Promise.all([getPubText('app/manifest.json'), getPubText('status.json'), getPubText('install/vuelux.user.js').then(function (t) { return !!t; }), getPubText('internal/vuelux-interno.meta.js')]).then(function (r) {
+        dl.innerHTML = '';
+        var m = r[0] && envBody(r[0]), st = r[1] && envBody(r[1]);
+        if (!m) dl.append(h('dt', { text: 'Versões' }), h('dd', { text: 'Ainda não publicaste nenhuma versão online.' }));
+        else {
+            ['stable', 'beta'].forEach(function (ch) { var x = m.ch && m.ch[ch]; dl.append(h('dt', { text: ch === 'stable' ? 'Estável' : 'Beta' }), h('dd', { text: x ? x.ver + ' · ' + Math.round(x.z / 1024) + ' KB' + (x.n ? ' · ' + x.n : '') : '—' })); });
+            dl.append(h('dt', { text: 'Publicado' }), h('dd', { text: ago(m.ts * 1000) }));
+            S.pubManifest = m; show('v-promote', !!(m.ch && m.ch.beta && (!m.ch.stable || VLC.cmpVer(m.ch.beta.ver, m.ch.stable.ver) > 0))); show('v-dropbeta', !!(m.ch && m.ch.beta));
+        }
+        dl.append(h('dt', { text: 'Estado dos clientes' }), h('dd', { text: st ? 'publicado ' + ago(st.ts * 1000) + ' · ' + Object.keys(st.lic || {}).length + ' licença(s)' : 'ainda não publicado' }));
+        dl.append(h('dt', { text: 'Instalador' }), h('dd', { text: r[2] ? 'publicado (install/vuelux.user.js)' : 'ainda não existe: publica uma versão estável' }));
+        var iv = r[3] && /@version\s+(\S+)/.exec(r[3]);
+        dl.append(h('dt', { text: 'Edição interna' }), h('dd', { text: iv ? iv[1] : 'ainda não publicada' }));
+    }).catch(function (e) { dl.innerHTML = ''; dl.append(h('dt', { text: 'Erro' }), h('dd', { text: e.message })); });
+}
+$('v-reload').onclick = loadVersions;
+function manifestEdit(fn, label) {
+    if (S.busy) return; busy(true);
+    getPubText('app/manifest.json').then(function (t) {
+        var m = t && envBody(t); if (!m) throw new Error('Sem manifesto publicado.');
+        fn(m); m.ts = nextTs(t);
+        return VLC.envSign(privJwk(), 'VLM1', m).then(function (txt) { return commitFiles([{ path: 'app/manifest.json', text: txt }], label); });
+    }).then(function () { msg('✓ ' + label + '. Pode demorar 1–2 minutos.', 'ok'); loadVersions(); }).catch(function (e) { msg('✗ ' + e.message, 'bad'); }).then(function () { busy(false); });
+}
+$('v-promote').onclick = function () { if (confirm('Passar a versão beta a estável? Passa a chegar a todos os ecrãs.')) manifestEdit(function (m) { m.ch.stable = m.ch.beta; delete m.ch.beta; }, 'beta passou a estável'); };
+$('v-dropbeta').onclick = function () { if (confirm('Retirar a versão beta?')) manifestEdit(function (m) { delete m.ch.beta; }, 'beta retirada'); };
+$('p-open').onclick = function () { $('f-prog').click(); };
+function updPub() { $('p-pub').disabled = !(S.prog && !S.local && S.db); }
+$('f-prog').onchange = function () {
+    var f = this.files[0]; this.value = ''; if (!f) return; err('p-err', '');
+    readFile(f).then(function (t) {
+        S.prog = null; $('p-st').textContent = '';
+        if (t.indexOf('// ==UserScript==') < 0 || t.indexOf('// ==/UserScript==') < 0) err('p-err', 'Isto não é um ficheiro do Tampermonkey (.user.js).');
+        else if (/\[PROTEGIDO\]/.test(t)) err('p-err', 'Este é o ficheiro «protegido» (com código). Para os clientes escolhe o ficheiro normal, o legível.');
+        else { var v = /\/\/ @version\s+(\S+)/.exec(t); if (!v) err('p-err', 'O ficheiro não tem «@version».'); else { S.prog = { text: t, ver: v[1], name: f.name }; $('p-st').textContent = '✓ ' + f.name + ' · versão ' + v[1] + ' · ' + Math.round(t.length / 1024) + ' KB'; } }
+        updPub();
+    });
+};
+function plog(id, t) { var e = $(id); e.classList.remove('hide'); e.textContent += t + '\n'; e.scrollTop = e.scrollHeight; }
+$('p-pub').onclick = function () {
+    if (S.busy || !S.prog) return; var prog = S.prog, chan = $('p-chan').value, notes = $('p-notes').value.trim();
+    if (chan === 'stable' && !confirm('Publicar a versão ' + prog.ver + ' como ESTÁVEL? Todos os ecrãs dos clientes a vão apanhar.')) return;
+    busy(true); err('p-err', ''); $('p-log').textContent = ''; plog('p-log', 'A cifrar a versão ' + prog.ver + '…');
+    var K = VLC.unb64u(S.db.payloadKey), blob, name = 'app/vuelux-' + prog.ver + '.bin', files = [], ts, m;
+    VLC.encPayload(K, splitProg(prog.text).body).then(function (b) {
+        blob = b; plog('p-log', 'Cifrado: ' + Math.round(b.length / 1024) + ' KB. A ler o manifesto atual…');
+        return Promise.all([getPubText('app/manifest.json'), getPubText('status.json'), listPub('app')]);
+    }).then(function (r) {
+        var old = r[0] && envBody(r[0]); m = { v: 1, kid: S.db.kid, need: 1, ch: (old && old.ch) || {} }; ts = nextTs(r[0]); m.ts = ts;
+        return VLC.sha256(blob).then(function (hh) {
+            m.ch[chan] = { ver: prog.ver, u: name, h: VLC.hex(hh), z: blob.length, n: notes };
+            if (chan === 'stable' && m.ch.beta && VLC.cmpVer(m.ch.beta.ver, prog.ver) < 0) delete m.ch.beta;
+            files.push({ path: name, bytes: blob });
+            var keep = {}; Object.keys(m.ch).forEach(function (k) { keep[m.ch[k].u] = 1; });
+            r[2].forEach(function (f) { if (/\.bin$/.test(f) && !keep['app/' + f]) { files.push({ path: 'app/' + f, del: true }); plog('p-log', 'A apagar a versão antiga ' + f); } });
+            return Promise.all([VLC.envSign(privJwk(), 'VLM1', m), statusObj(Math.max(ts, nextTs(r[1]))).then(function (o) { return VLC.envSign(privJwk(), 'VLS1', o); }), chan === 'stable' ? (plog('p-log', 'A montar o instalador…'), buildShell(prog)) : null]);
+        });
+    }).then(function (x) {
+        files.push({ path: 'app/manifest.json', text: x[0] }, { path: 'status.json', text: x[1] }); if (x[2]) files.push({ path: 'install/vuelux.user.js', text: x[2] });
+        plog('p-log', 'A enviar para o GitHub (1 commit, ' + files.length + ' ficheiros)…');
+        return commitFiles(files, 'versão ' + prog.ver + ' (' + chan + ')').then(function () { return ts; });
+    }).then(function (t) {
+        plog('p-log', '✓ Publicado. O GitHub Pages demora 1–2 minutos a mostrar.'); msg('✓ Versão ' + prog.ver + ' publicada (' + chan + ').', 'ok'); pollLive('app/manifest.json', t); loadVersions();
+    }).catch(function (e) { err('p-err', e.message || String(e)); plog('p-log', '✗ ' + (e.message || e)); }).then(function () { busy(false); });
+};
+$('i-open').onclick = function () { $('f-int').click(); };
+$('f-int').onchange = function () {
+    var f = this.files[0]; this.value = ''; if (!f) return; err('i-err', '');
+    readFile(f).then(function (t) {
+        S.intf = null; $('i-st').textContent = '';
+        var hd = t.slice(0, (t.indexOf('// ==/UserScript==') + 18) || 0), v = /\/\/ @version\s+(\S+)/.exec(hd), uu = /\/\/ @updateURL\s+(\S+)/.exec(hd), du = /\/\/ @downloadURL\s+(\S+)/.exec(hd);
+        if (!v || t.indexOf('// ==/UserScript==') < 0) err('i-err', 'Isto não é um ficheiro do Tampermonkey.');
+        else if (!/\[PROTEGIDO\]/.test(hd)) err('i-err', 'Este não é o ficheiro protegido: o ficheiro legível nunca deve ficar no GitHub público.');
+        else if (!uu || !du || !/\/internal\/vuelux-interno\.meta\.js$/.test(uu[1]) || !/\/internal\/vuelux-interno\.user\.js$/.test(du[1])) err('i-err', 'O ficheiro foi feito sem o endereço de atualização (usa a opção --update-base ao proteger).');
+        else { S.intf = { text: t, ver: v[1], head: hd }; $('i-st').textContent = '✓ ' + f.name + ' · versão ' + v[1]; }
+        $('i-pub').disabled = !(S.intf && !S.local && S.db);
+    });
+};
+$('i-pub').onclick = function () {
+    if (S.busy || !S.intf) return; busy(true); err('i-err', ''); $('i-log').textContent = '';
+    var i = S.intf; plog('i-log', 'A enviar a edição interna ' + i.ver + '…');
+    commitFiles([{ path: 'internal/vuelux-interno.user.js', text: i.text }, { path: 'internal/vuelux-interno.meta.js', text: i.head + '\n' }], 'edição interna ' + i.ver)
+        .then(function () { plog('i-log', '✓ Publicado. O Tampermonkey dos ecrãs procura atualizações sozinho (por defeito 1 vez por dia; no Tampermonkey: Definições → Verificação de atualizações).'); msg('✓ Edição interna ' + i.ver + ' publicada.', 'ok'); loadVersions(); })
+        .catch(function (e) { err('i-err', e.message || String(e)); }).then(function () { busy(false); });
+};
+
+// ---------------------------------------------------------------- instalar / ao vivo / verificar
+function renderLinks() {
+    var r = repoUrl();
+    $('l-inst').value = r + 'install/vuelux.user.js'; $('l-int').value = r + 'internal/vuelux-interno.user.js';
+    $('l-adm').value = /^https?:/.test(location.href) ? location.href.split('#')[0] : r + 'admin/';
+}
+Array.prototype.forEach.call(document.querySelectorAll('[data-copy]'), function (b) { b.onclick = function () { var i = $(b.dataset.copy); i.select(); try { navigator.clipboard.writeText(i.value); } catch (e) { document.execCommand('copy'); } b.textContent = '✓ Copiado'; setTimeout(function () { b.textContent = '📋 Copiar'; }, 1500); }; });
+function renderLive() {
+    if (!S.db) return;
+    var on = wkOn(); show('lv-off', !on); show('lv-on', on); if (!on) return;
+    var tb = $('t-live').tBodies[0]; tb.innerHTML = ''; var rows = S.live || [], now = S.liveNow || Date.now();
+    $('lv-st').textContent = S.live ? rows.length + ' PC(s) registado(s)' : 'sem dados (carrega em Atualizar)';
+    rows.slice().sort(function (a, b) { return (b.last || 0) - (a.last || 0); }).forEach(function (d) {
+        var c = S.db.customers.filter(function (x) { return x.id === d.cid; })[0], tr = h('tr'), onl = d.last && (now - d.last) < 20 * 60000;
+        tr.append(h('td', { text: c ? c.name : 'n.º ' + d.cid }), h('td', { text: d.dev, class: 'mono' }), h('td', { text: d.nm || '' }), h('td', { text: d.v || '' }), h('td', { text: d.last ? ago(d.last) : '—' }));
+        tr.append(h('td', null, h('span', { class: 'chip ' + (!d.ok ? 'bad' : (onl ? 'ok' : 'warn')), text: !d.ok ? 'à espera / bloqueado' : (onl ? 'ligado' : 'autorizado') })));
+        tr.append(h('td', null, d.ok ? h('button', { class: 'sm danger', text: 'Retirar', onclick: function () { if (c) removeDevice(c, d.dev); } }) : h('button', { class: 'sm', text: 'Autorizar', onclick: function () { if (c) authorise(c, d.dev, d.nm); } })));
+        tb.append(tr);
+    });
+    show('lv-empty', rows.length === 0); $('t-live').classList.toggle('hide', rows.length === 0);
+}
+$('lv-reload').onclick = function () { liveReload().then(render).catch(function (e) { $('lv-st').textContent = '✗ ' + e.message; }); };
+$('v-go').onclick = function () {
+    var o = $('v-out'), p = VLC.parse($('v-tok').value); o.className = 'box'; o.classList.remove('hide');
+    if (!p) { o.classList.add('bad'); o.textContent = 'Isto não parece uma licença do VueLux (confere se está inteira).'; return; }
+    VLC.verify(pubKey(), p).then(function (ok) {
+        var c = S.db.customers.filter(function (x) { return x.id === p.cid; })[0], lines = [];
+        lines.push(ok ? '✓ A assinatura é válida (foi feita com a tua base).' : '✗ A assinatura NÃO é válida: licença adulterada, incompleta ou de outra base.');
+        if (!ok) lines.push('Dados lidos da licença (NÃO são de confiança, a assinatura falhou):');
+        lines.push('Cliente n.º ' + p.cid + (c ? ' — ' + c.name : ' (não está nesta base)'));
+        lines.push('Emitida em ' + VLC.isoOf(p.iss) + ' · válida até ' + VLC.isoOf(p.exp) + ' · época de chaves ' + p.kid + (p.kid !== S.db.kid ? ' (diferente da base atual: o programa recusa-a)' : ''));
+        if (c && c.revoked) lines.push('⚠ Este cliente está SUSPENSO por ti.');
+        o.classList.add(ok ? 'ok' : 'bad'); o.textContent = ''; lines.forEach(function (l, i) { if (i) o.append(document.createElement('br')); o.append(document.createTextNode(l)); });
+    });
+};
+initLock();
+window.__vlad = { S: S, saveAll: saveAll };
+})();
+
+</script>
+<script type="text/plain" id="core-src">// VueLux — núcleo das licenças (partilhado pelo carregador, pelo gerador e pelos testes). Sem dependências; usa WebCrypto.
+// Licença = bytes: [0]=versão(1) [1]=época da chave [2..4]=id do cliente [5..6]=emitida [7..8]=válida até (dias desde 2025-01-01; 0xFFFF = sem fim)
+//   [9]=opções [10]=n.º de domínios (1..4) [11..]=n×6 bytes (SHA-256 do domínio, minúsculas) [..]=chave do programa (16 bytes) [..]=assinatura ECDSA P-256/SHA-256 (64 bytes)
+// Texto: «VL1-» + base32 (A-Z 2-7) em grupos de 6.
+var VLC = (function () {
+    var EPOCH = Date.UTC(2025, 0, 1) / 86400000, A32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567', NEVER = 0xFFFF;
+    var subtle = (globalThis.crypto && globalThis.crypto.subtle), enc = new TextEncoder();
+    function dayOf(ms) { return Math.floor(ms / 86400000) - EPOCH; }
+    function isoOf(d) { return d === NEVER ? 'sem fim' : new Date((d + EPOCH) * 86400000).toISOString().slice(0, 10); }
+    function dayFromISO(s) { if (!s || s === 'sem fim' || s === 'sem-fim' || s === 'never') return NEVER; var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s)); if (!m) throw new Error('data inválida (usa AAAA-MM-DD)'); return Math.floor(Date.UTC(+m[1], +m[2] - 1, +m[3]) / 86400000) - EPOCH; }
+    function b32(u) { var out = '', bits = 0, v = 0, i; for (i = 0; i < u.length; i++) { v = (v << 8) | u[i]; bits += 8; while (bits >= 5) { out += A32[(v >>> (bits - 5)) & 31]; bits -= 5; } v &= (1 << bits) - 1; } if (bits) out += A32[(v << (5 - bits)) & 31]; return out; }
+    function unb32(s) { var out = [], bits = 0, v = 0, i, k; s = String(s).toUpperCase(); for (i = 0; i < s.length; i++) { k = A32.indexOf(s[i]); if (k < 0) return null; v = (v << 5) | k; bits += 5; if (bits >= 8) { out.push((v >>> (bits - 8)) & 255); bits -= 8; v &= (1 << bits) - 1; } } return new Uint8Array(out); }
+    function b64u(u) { var s = '', i; for (i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+    function unb64u(s) { s = String(s).replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; var b = atob(s), u = new Uint8Array(b.length), i; for (i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+    function domHash(host) { return subtle.digest('SHA-256', enc.encode(String(host || '').trim().toLowerCase())).then(function (d) { return new Uint8Array(d).slice(0, 6); }); }
+    function body(o) {          // {kid,cid,iss,exp,flags,doms:[Uint8Array(6)...],K:Uint8Array(16)}
+        var n = o.doms.length; if (n < 1 || n > 4) throw new Error('1 a 4 domínios');
+        var u = new Uint8Array(11 + n * 6 + 16), i;
+        u[0] = 1; u[1] = o.kid & 255; u[2] = (o.cid >> 16) & 255; u[3] = (o.cid >> 8) & 255; u[4] = o.cid & 255; u[5] = (o.iss >> 8) & 255; u[6] = o.iss & 255; u[7] = (o.exp >> 8) & 255; u[8] = o.exp & 255; u[9] = o.flags & 255; u[10] = n;
+        for (i = 0; i < n; i++) u.set(o.doms[i], 11 + i * 6);
+        u.set(o.K, 11 + n * 6); return u;
+    }
+    function text(bytes) { var s = b32(bytes), out = [], i; for (i = 0; i < s.length; i += 6) out.push(s.slice(i, i + 6)); return 'VL1-' + out.join('-'); }
+    function parse(tok) {
+        var s = String(tok || '').replace(/[\s\-_.,;:]+/g, '').toUpperCase(); if (s.indexOf('VL1') === 0) s = s.slice(3);
+        var u = unb32(s); if (!u || u.length < 11 + 6 + 16 + 64 || u[0] !== 1) return null;
+        var n = u[10]; if (n < 1 || n > 4 || u.length < 11 + n * 6 + 16 + 64) return null;
+        var end = 11 + n * 6 + 16, doms = [], i; for (i = 0; i < n; i++) doms.push(u.slice(11 + i * 6, 17 + i * 6));
+        return { kid: u[1], cid: (u[2] << 16) | (u[3] << 8) | u[4], iss: (u[5] << 8) | u[6], exp: (u[7] << 8) | u[8], flags: u[9], doms: doms, K: u.slice(end - 16, end), body: u.slice(0, end), sig: u.slice(end, end + 64), canon: text(u.slice(0, end + 64)) };
+    }
+    function sign(privJwk, bodyBytes) {
+        return subtle.importKey('jwk', privJwk, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']).then(function (k) { return subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, k, bodyBytes); }).then(function (s) { return new Uint8Array(s); });
+    }
+    function verify(pubJwk, p) {
+        return subtle.importKey('jwk', { kty: 'EC', crv: 'P-256', x: pubJwk.x, y: pubJwk.y, ext: true }, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify'])
+            .then(function (k) { return subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, k, p.sig, p.body); }).catch(function () { return false; });
+    }
+    function sameDom(a, b) { var i; for (i = 0; i < 6; i++) if (a[i] !== b[i]) return false; return true; }
+    function make(privJwk, o) { var b = body(o); return sign(privJwk, b).then(function (sig) { var all = new Uint8Array(b.length + 64); all.set(b); all.set(sig, b.length); return text(all); }); }
+    // ---- 7.3: envelopes assinados (estado online, manifesto de versões, resposta do registo), ID do PC, versões, payload cifrado ----
+    // Envelope = {"b":"<texto JSON>","s":"<assinatura ECDSA em base64url>"}; a assinatura é sobre «PREFIXO\n» + b (os bytes exatos do texto b, sem reserializar).
+    function utf8(s) { return enc.encode(s); }
+    function sha256(u) { return subtle.digest('SHA-256', u).then(function (d) { return new Uint8Array(d); }); }
+    function hex(u, n) { var s = '', i; for (i = 0; i < u.length && (!n || i < n); i++) s += (u[i] < 16 ? '0' : '') + u[i].toString(16); return s; }
+    function envSign(privJwk, pre, obj) { var b = JSON.stringify(obj); return sign(privJwk, utf8(pre + '\n' + b)).then(function (s) { return JSON.stringify({ b: b, s: b64u(s) }); }); }
+    function envOpen(pubJwk, pre, txt) {
+        var e; try { e = JSON.parse(txt); } catch (x) { return Promise.resolve(null); }
+        if (!e || typeof e.b !== 'string' || typeof e.s !== 'string') return Promise.resolve(null);
+        return subtle.importKey('jwk', { kty: 'EC', crv: 'P-256', x: pubJwk.x, y: pubJwk.y, ext: true }, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify'])
+            .then(function (k) { return subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, k, unb64u(e.s), utf8(pre + '\n' + e.b)); })
+            .then(function (ok) { if (!ok) return null; try { var o = JSON.parse(e.b); return o && typeof o === 'object' ? o : null; } catch (x) { return null; } })
+            .catch(function () { return null; });
+    }
+    function statusKey(kid, cid) { return sha256(utf8('vl-st|' + kid + '|' + cid)).then(function (u) { return hex(u, 6); }); }       // chave (12 hex) da licença no ficheiro público de estado: não mostra o n.º do cliente
+    function devHash(id) { return sha256(utf8('vl-dev|' + String(id || '').trim().toUpperCase())).then(function (u) { return hex(u, 5); }); }   // 10 hex do ID do PC
+    function newDeviceId() { var u = new Uint8Array(8), s; globalThis.crypto.getRandomValues(u); s = b32(u).slice(0, 12); return 'PC-' + s.slice(0, 4) + '-' + s.slice(4, 8) + '-' + s.slice(8, 12); }
+    function okDeviceId(v) { return /^PC-[A-Z2-7]{4}-[A-Z2-7]{4}-[A-Z2-7]{4}$/.test(String(v || '')); }
+    function cmpVer(a, b) { var x = String(a || '0').split('.'), y = String(b || '0').split('.'), i, d, n = Math.max(x.length, y.length); for (i = 0; i < n; i++) { d = (parseInt(x[i], 10) || 0) - (parseInt(y[i], 10) || 0); if (d) return d < 0 ? -1 : 1; } return 0; }
+    // payload = AES-GCM(chave do programa, AAD «vuelux2») de deflate-raw(UTF-8). Ficheiro = iv(12) + cifra.
+    function encPayload(K, txt, iv) {
+        var raw = new Response(new Blob([utf8(txt)]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer();
+        iv = iv || globalThis.crypto.getRandomValues(new Uint8Array(12));
+        return raw.then(function (r) { return subtle.importKey('raw', K, 'AES-GCM', false, ['encrypt']).then(function (k) { return subtle.encrypt({ name: 'AES-GCM', iv: iv, additionalData: utf8('vuelux2') }, k, r); }); })
+            .then(function (ct) { var all = new Uint8Array(12 + ct.byteLength); all.set(iv); all.set(new Uint8Array(ct), 12); return all; });
+    }
+    function decPayload(K, bytes, iv) {
+        if (!iv) { iv = bytes.slice(0, 12); bytes = bytes.slice(12); }
+        return subtle.importKey('raw', K, 'AES-GCM', false, ['decrypt']).then(function (k) { return subtle.decrypt({ name: 'AES-GCM', iv: iv, additionalData: utf8('vuelux2') }, k, bytes); })
+            .then(function (buf) { return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer(); })
+            .then(function (buf) { return new TextDecoder().decode(buf); });
+    }
+    return { utf8: utf8, sha256: sha256, hex: hex, envSign: envSign, envOpen: envOpen, statusKey: statusKey, devHash: devHash, newDeviceId: newDeviceId, okDeviceId: okDeviceId, cmpVer: cmpVer, encPayload: encPayload, decPayload: decPayload, EPOCH: EPOCH, NEVER: NEVER, dayOf: dayOf, isoOf: isoOf, dayFromISO: dayFromISO, b64u: b64u, unb64u: unb64u, domHash: domHash, parse: parse, verify: verify, make: make, sameDom: sameDom, text: text };
+})();
+</script>
+</body>
+</html>
