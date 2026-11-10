@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name       Odoo Preparation - Cozinha e Pizzaria FINAL
 // @namespace    chez-nuno-preparation
-// @version      7.3.1
+// @version      7.4.0
 // @description  [PROTEGIDO] Filtros, cadeado, alertas, auras, som seletivo, matriz de categorias, ligação entre computadores (LAN/online/offline). Resistente a atualizações do Odoo.
 // @match        https://cheznuno2.odoo.com/pos/*
 // @match        https://cheznuno2.odoo.com/pos_preparation_display/*
