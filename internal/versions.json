@@ -8,11 +8,17 @@
   "n": "7.4.0"
  },
  "beta": {
-  "ver": "7.4.2",
-  "t": 1794325267,
-  "n": "7.4.2: falso alarme dos cartões offline; aviso do POS mostra o erro do Odoo"
+  "ver": "7.5.1",
+  "t": 1794328645,
+  "n": "7.5.1: a conta da Livraison sai do pedido enviado aos KDS (mesmo que o POS já esteja noutro pedido); inclui 7.5.0 (versão de cada PC e forçar atualização num só PC)"
  },
  "hist": [
+  {
+   "ver": "7.5.1",
+   "t": 1794328645,
+   "n": "7.5.1: a conta da Livraison sai do pedido enviado aos KDS (mesmo que o POS já esteja noutro pedido); inclui 7.5.0 (versão de cada PC e forçar atualização num só PC)",
+   "c": "beta"
+  },
   {
    "ver": "7.4.2",
    "t": 1794325267,
@@ -34,6 +40,13 @@
  ],
  "log": [
   {
+   "t": 1794328645,
+   "a": "publish",
+   "v": "7.5.1",
+   "c": "beta",
+   "x": ""
+  },
+  {
    "t": 1794325267,
    "a": "publish",
    "v": "7.4.2",
@@ -48,5 +61,5 @@
    "x": ""
   }
  ],
- "ts": 1794325267
+ "ts": 1794328645
 }
