@@ -7,8 +7,18 @@
   "t": 1794305006,
   "n": "7.4.0"
  },
- "beta": null,
+ "beta": {
+  "ver": "7.4.2",
+  "t": 1794325267,
+  "n": "7.4.2: falso alarme dos cartões offline; aviso do POS mostra o erro do Odoo"
+ },
  "hist": [
+  {
+   "ver": "7.4.2",
+   "t": 1794325267,
+   "n": "7.4.2: falso alarme dos cartões offline; aviso do POS mostra o erro do Odoo",
+   "c": "beta"
+  },
   {
    "ver": "7.4.0",
    "t": 1794305006,
@@ -24,6 +34,13 @@
  ],
  "log": [
   {
+   "t": 1794325267,
+   "a": "publish",
+   "v": "7.4.2",
+   "c": "beta",
+   "x": ""
+  },
+  {
    "t": 1794305006,
    "a": "publish",
    "v": "7.4.0",
@@ -31,5 +48,5 @@
    "x": ""
   }
  ],
- "ts": 1794305006
+ "ts": 1794325267
 }
