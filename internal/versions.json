@@ -2,16 +2,12 @@
  "v": 1,
  "rbN": 0,
  "stable": {
-  "ver": "7.4.0",
-  "hv": "7.4.0",
-  "t": 1794305006,
-  "n": "7.4.0"
- },
- "beta": {
   "ver": "7.5.1",
-  "t": 1794328645,
+  "hv": "7.5.1",
+  "t": 1794328740,
   "n": "7.5.1: a conta da Livraison sai do pedido enviado aos KDS (mesmo que o POS já esteja noutro pedido); inclui 7.5.0 (versão de cada PC e forçar atualização num só PC)"
  },
+ "beta": null,
  "hist": [
   {
    "ver": "7.5.1",
@@ -40,6 +36,13 @@
  ],
  "log": [
   {
+   "t": 1794328740,
+   "a": "promote",
+   "v": "7.5.1",
+   "c": "stable",
+   "x": ""
+  },
+  {
    "t": 1794328645,
    "a": "publish",
    "v": "7.5.1",
@@ -61,5 +64,5 @@
    "x": ""
   }
  ],
- "ts": 1794328645
+ "ts": 1794328740
 }
