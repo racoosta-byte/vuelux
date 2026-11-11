@@ -56,6 +56,7 @@ tr.cl{cursor:pointer}tr.cl:hover td{background:var(--surf2)}tr.cl.sel td{backgro
 .toast button{min-height:32px;padding:2px 10px;background:transparent;border:0;color:inherit;font-size:16px}
 .ask{position:fixed;left:12px;right:12px;bottom:12px;z-index:70;max-width:640px;margin:0 auto;padding:16px;border-radius:14px;background:var(--surf);color:var(--fg);border:2px solid var(--pri);box-shadow:0 10px 40px rgba(0,0,0,.5)}
 .ask-q{white-space:pre-wrap;font-size:14.5px;line-height:1.45;max-height:55vh;overflow:auto;margin:0 0 12px}.ask-b{display:flex;gap:10px;justify-content:flex-end}.ask-b button{min-height:44px;min-width:110px}
+.sup-x summary{cursor:pointer}.sup-x pre{white-space:pre-wrap;word-break:break-word;margin:6px 0 0;font-size:12px;max-height:260px;overflow:auto}
 </style>
 </head>
 <body>
@@ -171,6 +172,19 @@ tr.cl{cursor:pointer}tr.cl:hover td{background:var(--surf2)}tr.cl.sel td{backgro
         <p class="note hide" id="rp-empty">Ainda nenhum PC deste cliente se anunciou. Aparecem quando tiverem o instalador 3 (ou mais novo) a correr.</p>
         <p class="note">Um PC que não aparece aqui está desligado ou ainda tem um instalador antigo (esses não se anunciam, não apanham o «Forçar» e podem voltar a uma versão velha sozinhos): abre o link do instalador nesse PC e carrega em «Atualizar/Reinstalar» no Tampermonkey; a licença mantém-se.</p>
         <div class="box bad hide" id="rp-err"></div>
+
+        <h2 style="margin-top:18px">🩺 Erros dos PCs (suporte)</h2>
+        <p class="note">O programa envia os erros, as quedas de ligação entre ecrãs e os diagnósticos <b>cifrados</b> para um canal que esta página calcula sozinha a partir do domínio do cliente (nada para escrever); cada ecrã envia também um relatório completo 1 vez por dia. Só dados técnicos: nada de pedidos, clientes nem preços. O ntfy só guarda 12 h, por isso esta página guarda cópia neste navegador. «📤 Enviar para o Claude» põe a lista, cifrada só para o Claude, na pasta <span class="mono">support/</span> do repositório público; ele lê-a e faz as correções.</p>
+        <div class="row">
+          <div class="f s"><label for="sp-code">Código de suporte (só se o automático não servir)</label><input type="text" id="sp-code" class="mono" placeholder="AAAA-BBBB-CCCC-DDDD" maxlength="19" autocomplete="off" spellcheck="false"></div>
+          <button id="sp-reload" style="align-self:flex-end">🔄 Ler agora</button>
+          <button id="sp-ask" style="align-self:flex-end">📣 Pedir debug agora</button>
+          <button id="sp-claude" style="align-self:flex-end">📤 Enviar para o Claude</button>
+        </div>
+        <div class="row"><button id="sp-copy" class="sm">📋 Copiar a lista</button><button id="sp-clear" class="sm">🧹 Limpar a cópia desta página</button><span class="note" id="sp-st" style="align-self:center"></span></div>
+        <div class="box bad hide" id="sp-err"></div>
+        <table id="t-sup" class="hide"><thead><tr><th>Quando</th><th>PC / ecrã</th><th>Versão</th><th>Tipo</th><th>O que aconteceu</th></tr></thead><tbody></tbody></table>
+        <p class="note hide" id="sp-empty">Ainda não chegou nada deste cliente (bom sinal: sem erros). Precisa do programa 7.5.9 ou mais novo e de o domínio do cliente ser o endereço do Odoo (ex.: cheznuno2.odoo.com).</p>
 
         <h2 style="margin-top:18px">🧩 Versão do programa deste cliente</h2>
         <div class="row">
@@ -967,7 +981,7 @@ function renderList() {
 }
 function verLabel(c) { return (c.nf ? '🔒 ' : '') + (c.pv ? '📌 ' + c.pv : c.ch === 'beta' ? '🧪 beta' : c.ch === 'stable' ? 'estável' : 'geral'); }
 function cur() { return S.db.customers.filter(function (c) { return c.id === S.sel; })[0]; }
-function select(id) { S.sel = id; renderList(); fillDetail(); $('rp-st').textContent = ''; err('rp-err', ''); repReload(cur(), true); $('detail').scrollIntoView && $('detail').scrollIntoView({ block: 'nearest' }); }
+function select(id) { S.sel = id; renderList(); fillDetail(); $('rp-st').textContent = ''; err('rp-err', ''); repReload(cur(), true); supReload(cur(), true); $('detail').scrollIntoView && $('detail').scrollIntoView({ block: 'nearest' }); }
 function fillDetail() {
     var c = cur(); show('detail', !!c); if (!c) return;
     $('d-title').textContent = 'Cliente n.º ' + c.id + ' — ' + c.name;
@@ -975,7 +989,7 @@ function fillDetail() {
     var never = c.exp === 'sem-fim'; $('d-never').checked = never; $('d-exp').value = never ? '' : c.exp; $('d-exp').disabled = never;
     $('d-max').value = c.max || 0; $('d-note').value = c.note || ''; $('d-rev').checked = !!c.revoked;
     err('d-err', ''); err('d-pcerr', ''); $('d-msg').textContent = ''; $('d-tok').value = 'A gerar…';
-    renderDevices(c); renderReps(c); show('d-fbox', false); fillVer(c);
+    renderDevices(c); renderReps(c); renderSup(c); show('d-fbox', false); fillVer(c);
     var id = c.id; mkToken(c).then(function (t) { if (S.sel === id) $('d-tok').value = t; });
 }
 // ---- versão do programa por cliente (7.4.0): escolher a versão, não seguir a atualização geral, forçar só este cliente
@@ -1123,6 +1137,144 @@ function forcePc(c, dev) {
     saveAll().then(function () { if (S.sel === c.id) renderReps(c); });
 }
 $('rp-reload').onclick = function () { repReload(cur(), false); };
+
+// ---- (7.5.9) Erros dos PCs: o programa envia erros, quedas de ligação e diagnósticos cifrados com o «código de suporte» do cliente (canal ntfy próprio).
+// Aqui lêem-se, guardam-se neste navegador (o ntfy só guarda 12 h) e podem ir, cifrados só para o Claude (ECDH P-256 + AES-GCM), para a pasta support/ do repositório público.
+var SUP_CLAUDE = { x: 'pQJNZyo1Dr4wzQtSGEzGCR3OAXe67e0LsrXJTyNj7KY', y: 'Bcci7BlMM6KMpVguhwk8hOtF6_i2jjvVIiDqk9GEKSw' }, SUP_MAX = 300;
+function supCodeOk(s) { return /^[0-9A-F]{4}(-[0-9A-F]{4}){3}$/.test(String(s || '')); }
+function supNorm(s) { return String(s || '').toUpperCase().replace(/[^0-9A-F]/g, '').slice(0, 16).replace(/(.{4})(?=.)/g, '$1-'); }
+function supStoreKey(c) { return 'vlad-sup-' + S.db.kid + '-' + c.id; }
+function supCache(c) { try { var j = JSON.parse(localStorage.getItem(supStoreKey(c)) || 'null'); return j && Array.isArray(j.ev) ? j : { at: 0, ev: [] }; } catch (e) { return { at: 0, ev: [] }; } }
+function supSave(c, o) { try { localStorage.setItem(supStoreKey(c), JSON.stringify(o)); } catch (e) {} }
+function supKeys(code) {
+    return VLC.sha256(enc.encode('tm-sup-topic|' + code)).then(function (t) {
+        return subtle.importKey('raw', enc.encode('tm-sup|' + code), 'PBKDF2', false, ['deriveKey']).then(function (b) {
+            return subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt: enc.encode('chez-nuno-sup-v1'), iterations: 60000 }, b, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+        }).then(function (k) { return { topic: 'ts' + VLC.hex(t, 16), key: k }; });
+    });
+}
+function supOpen(key, txt) {          // byte 0: 2 = cifrado, +1 = comprimido (deflate-raw); depois 12 bytes de IV e a cifra
+    var u; try { u = VLC.unb64u(String(txt || '').trim()); } catch (e) { return Promise.resolve(null); }
+    if (u.length < 30 || u.length > 4200 || !(u[0] & 2)) return Promise.resolve(null);
+    return subtle.decrypt({ name: 'AES-GCM', iv: u.slice(1, 13) }, key, u.slice(13)).then(function (buf) {
+        return (u[0] & 1) ? new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer() : buf;
+    }).then(function (buf) { if (buf.byteLength > 200000) return null; var o = JSON.parse(dec.decode(buf)); return o && typeof o === 'object' ? o : null; }).catch(function () { return null; });
+}
+function supClean(o, id, time) {          // o que chega do ntfy é cifrado mas vem dos PCs: só texto e números
+    var s = function (v, n) { return String(v == null ? '' : v).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f<>]/g, ' ').slice(0, n); };
+    return { id: s(id, 40), t: time, k: s(o.k, 12), n: s(o.n, 40), d: s(o.d, 8), ver: /^[0-9][0-9.]{0,15}$/.test(String(o.ver)) ? String(o.ver) : '', s: s(o.s, 20), x: s(o.x, 4000) };
+}
+function supCodes(c) {          // código de suporte: o escrito à mão, ou (normal) calculado do endereço do Odoo de cada domínio do cliente — nada para escrever
+    if (supCodeOk(c.sup)) return Promise.resolve([c.sup]);
+    var doms = (c.domains || []).map(function (d) { return String(d || '').toLowerCase(); }).filter(Boolean).slice(0, 8);
+    return Promise.all(doms.map(function (d) { return VLC.sha256(enc.encode('tm-supcode2|' + d + '|a5a244aa84c3b76abc3f36ee')).then(function (u) { return VLC.hex(u, 8).toUpperCase().replace(/(.{4})(?=.)/g, '$1-'); }); }));
+}
+function supFetch(c) {          // lê o canal de suporte, junta ao que já havia (sem repetir) e devolve {ev, added}
+    return supCodes(c).then(function (codes) {
+        if (!codes.length) throw new Error('Este cliente não tem domínio (nem código de suporte) para calcular o canal.');
+        var ev = supCache(c).ev, have = {}, added = 0;
+        ev.forEach(function (e) { have[e.id] = 1; });
+        return codes.reduce(function (pr, code) {
+            return pr.then(function () {
+                return supKeys(code).then(function (k) {
+                    var ac = typeof AbortController !== 'undefined' ? new AbortController() : null, t = setTimeout(function () { try { ac && ac.abort(); } catch (e) {} }, 15000);
+                    return fetch(REP_BASE + '/' + k.topic + '/json?poll=1&since=all', { cache: 'no-store', credentials: 'omit', signal: ac ? ac.signal : undefined })
+                        .then(function (r) { clearTimeout(t); if (!r.ok) throw new Error('ntfy.sh respondeu HTTP ' + r.status); return r.text(); })
+                        .then(function (txt) {
+                            var p = Promise.resolve();
+                            String(txt).split('\n').forEach(function (ln) {
+                                p = p.then(function () {
+                                    var m; try { m = JSON.parse(ln); } catch (e) { return; }
+                                    if (!m || m.event !== 'message' || typeof m.message !== 'string' || !m.id || have[m.id]) return;
+                                    have[m.id] = 1;
+                                    return supOpen(k.key, m.message).then(function (o) { if (o && o.v === 1) { ev.push(supClean(o, m.id, (+m.time || 0) * 1000)); added++; } });
+                                });
+                            });
+                            return p;
+                        });
+                });
+            });
+        }, Promise.resolve()).then(function () { ev.sort(function (a, b) { return b.t - a.t; }); ev = ev.slice(0, SUP_MAX); supSave(c, { at: Date.now(), ev: ev }); return { ev: ev, added: added }; });
+    });
+}
+function supWhen(t) { var d = new Date(t), p2 = function (n) { return String(n).padStart(2, '0'); }; return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds()); }
+function supText(c, n) {
+    return supCache(c).ev.slice(0, n || SUP_MAX).map(function (e) { return supWhen(e.t) + ' | ' + (e.n || '?') + ' (' + (e.s || '?') + ') | v' + (e.ver || '?') + ' | ' + e.k + ' | ' + e.x; }).join('\n');
+}
+function renderSup(c) {
+    if (!c) return;
+    var tb = $('t-sup').tBodies[0]; tb.innerHTML = ''; var ev = supCache(c).ev, BAD = { 'erro js': 1, erro: 1 }, WARN = { 'ligação': 1, 'correção': 1 };
+    if (document.activeElement !== $('sp-code')) $('sp-code').value = c.sup || '';
+    ev.slice(0, 100).forEach(function (e) {
+        var first = String(e.x).split('\n')[0], long = e.x.length > 140 || e.x.indexOf('\n') >= 0;
+        var det = long ? h('details', { class: 'sup-x' }, h('summary', { text: first.slice(0, 140) + ' …' }), h('pre', { text: e.x })) : h('div', { class: 'sup-x', text: e.x });
+        tb.append(h('tr', null, h('td', { text: ago(e.t), title: supWhen(e.t) }), h('td', null, e.n || '?', h('div', { class: 'note', text: e.s + (e.d ? ' · ' + e.d : '') })), h('td', { text: e.ver || '?' }),
+            h('td', null, h('span', { class: BAD[e.k] ? 'chip bad' : (WARN[e.k] ? 'chip warn' : 'chip'), text: e.k || '?' })), h('td', null, det)));
+    });
+    show('t-sup', ev.length > 0); show('sp-empty', ev.length === 0);
+}
+function supReload(c, soft) {
+    if (!c) return Promise.resolve();
+    var cached = supCache(c); if (soft && cached.at && Date.now() - cached.at < 90000) { renderSup(c); return Promise.resolve(); }
+    $('sp-st').textContent = 'A ler…'; err('sp-err', '');
+    return supFetch(c).then(function (r) { if (S.sel === c.id) { renderSup(c); $('sp-st').textContent = r.added ? r.added + ' novo(s) · atualizado agora' : 'sem novidades · atualizado agora'; } })
+        .catch(function (e) { if (S.sel === c.id) { renderSup(c); $('sp-st').textContent = ''; err('sp-err', '✗ Não consegui ler os erros: ' + (e && e.message || e)); } });
+}
+$('sp-code').oninput = function () {
+    var c = cur(); if (!c) return; var v = supNorm(this.value); this.value = v;
+    if (v === (c.sup || '') || (!supCodeOk(v) && v !== '')) return;          // só guarda um código completo (ou vazio)
+    c.sup = v; markDirty(true); err('sp-err', ''); if (supCodeOk(v)) { $('sp-st').textContent = 'Código guardado (carrega em «Guardar» no topo).'; supReload(c, false); } else renderSup(c);
+};
+$('sp-reload').onclick = function () { supReload(cur(), false); };
+$('sp-copy').onclick = function () {
+    var c = cur(); if (!c) return; var t = supText(c, 100);
+    if (!t) { $('sp-st').textContent = 'Nada para copiar.'; return; }
+    (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { $('sp-st').textContent = 'Copiado ✓'; }, function () { $('sp-st').textContent = 'Não consegui copiar (o navegador não deixou).'; });
+};
+$('sp-clear').onclick = function () { var c = cur(); if (!c || !confirm('Apagar a cópia dos erros guardada nesta página? (O ntfy ainda pode devolver as últimas 12 h.)')) return; supSave(c, { at: 0, ev: [] }); renderSup(c); $('sp-st').textContent = 'Cópia apagada.'; };
+function supSealClaude(text) {          // ECDH P-256 efémero → AES-GCM (chave = SHA-256 do segredo); só quem tem a chave privada do Claude abre
+    var eph, ephPub, iv = rand(12);
+    return subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']).then(function (k) { eph = k; return subtle.exportKey('jwk', k.publicKey); }).then(function (j) {
+        ephPub = { x: j.x, y: j.y };
+        return subtle.importKey('jwk', { kty: 'EC', crv: 'P-256', x: SUP_CLAUDE.x, y: SUP_CLAUDE.y, ext: true }, { name: 'ECDH', namedCurve: 'P-256' }, false, []);
+    }).then(function (pub) { return subtle.deriveBits({ name: 'ECDH', public: pub }, eph.privateKey, 256); })
+        .then(function (bits) { return VLC.sha256(enc.encode('vl-sup-claude1|' + VLC.hex(new Uint8Array(bits), 32))); })
+        .then(function (kb) { return subtle.importKey('raw', kb, 'AES-GCM', false, ['encrypt']); })
+        .then(function (key) {
+            return new Response(new Blob([enc.encode(text)]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer().then(function (z) {
+                return subtle.encrypt({ name: 'AES-GCM', iv: iv, additionalData: enc.encode('vlsup1') }, key, z);
+            });
+        }).then(function (ct) { return { v: 1, e: ephPub, i: b64(iv), c: b64(new Uint8Array(ct)), z: 1 }; });
+}
+$('sp-ask').onclick = function () {          // (7.5.11) pede o debug a todos os ecrãs do cliente: grava um pedido no repositório; os ecrãs vão ver de 2 em 2 min (o GitHub Pages demora ~1 min a publicar)
+    var c = cur(); if (!c) return; err('sp-err', '');
+    if (S.local) return err('sp-err', 'Precisa da ligação ao GitHub (estás em modo ficheiro).');
+    var btn = $('sp-ask'); btn.disabled = true; $('sp-st').textContent = 'A pedir…';
+    supCodes(c).then(function (codes) {
+        if (!codes.length) throw new Error('Este cliente não tem domínio (nem código de suporte).');
+        return Promise.all(codes.map(function (code) { return supKeys(code).then(function (k) { return k.topic; }); }));
+    }).then(function (topics) {
+        return getPubText('support-req.json').then(function (old) {
+            var o = {}; try { o = JSON.parse(old || '{}') || {}; } catch (e) { o = {}; }
+            var r = o.r && typeof o.r === 'object' ? o.r : {}, now = Date.now(), id = 'rq' + now.toString(36);
+            Object.keys(r).forEach(function (k) { if (!r[k] || now - (+r[k].t || 0) > 86400000) delete r[k]; });
+            topics.forEach(function (tp) { r[tp] = { id: id, t: now }; });
+            return commitFiles([{ path: 'support-req.json', text: JSON.stringify({ v: 1, r: r }) }], 'suporte: pedido de debug (' + c.id + ')').then(function () { return id; });
+        });
+    }).then(function () { btn.disabled = false; $('sp-st').textContent = 'Pedido feito ✓. Os ecrãs com a 7.5.11 enviam em ~3–5 min; depois carrega em «🔄 Ler agora».'; }, function (e) { btn.disabled = false; $('sp-st').textContent = ''; err('sp-err', '✗ Não consegui pedir: ' + (e && e.message || e)); });
+};
+$('sp-claude').onclick = function () {
+    var c = cur(); if (!c) return; err('sp-err', '');
+    if (S.local) return err('sp-err', 'Precisa da ligação ao GitHub (estás em modo ficheiro).');
+    var ev = supCache(c).ev; if (!ev.length) return err('sp-err', 'Não há nada para enviar: carrega primeiro em «🔄 Ler agora».');
+    var pcs = Object.keys(repCache(c).devs || {}).map(function (id) { var r = repCache(c).devs[id]; return { dev: id, nm: r.nm, ver: r.ver, ch: r.ch, at: r.at, st: r.st, fb: r.fb }; });
+    var pack = JSON.stringify({ v: 1, cid: c.id, cliente: c.name, at: Date.now(), pcs: pcs, ev: ev });
+    var btn = $('sp-claude'); btn.disabled = true; $('sp-st').textContent = 'A cifrar e enviar…';
+    supSealClaude(pack).then(function (o) {
+        var d = new Date(), p2 = function (n) { return String(n).padStart(2, '0'); }, name = 'support/' + d.getUTCFullYear() + p2(d.getUTCMonth() + 1) + p2(d.getUTCDate()) + '-' + p2(d.getUTCHours()) + p2(d.getUTCMinutes()) + p2(d.getUTCSeconds()) + '-c' + c.id + '.json';
+        return commitFiles([{ path: name, text: JSON.stringify(o) }], 'suporte: erros do cliente ' + c.id + ' (cifrado para o Claude)').then(function () { return name; });
+    }).then(function (name) { btn.disabled = false; $('sp-st').textContent = 'Enviado ✓ (' + ev.length + ' registos, cifrados). Diz ao Claude: «vê o suporte».'; }, function (e) { btn.disabled = false; $('sp-st').textContent = ''; err('sp-err', '✗ Não consegui enviar para o GitHub: ' + (e && e.message || e)); });
+};
 function removeDevice(c, id) {
     if (!confirm('Retirar o PC ' + id + ' deste cliente? Esse PC deixa de funcionar assim que o estado for publicado e o ecrã o ler.')) return;
     var after = function () { c.devices = c.devices.filter(function (d) { return d.id !== id; }); if (S.live) S.live = S.live.map(function (d) { return d.cid === c.id && d.dev === id ? Object.assign({}, d, { ok: 0 }) : d; }); markDirty(true); renderDevices(c); renderList(); renderStats(); };
@@ -1595,7 +1747,7 @@ $('v-go').onclick = function () {
     });
 };
 // ---------------------------------------------------------------- versão desta página (7.5.5+): diz qual é, se é a última publicada, e leva à última
-var ADMIN = { ver: '7.5.8', build: 'c7f97057', at: '2026-11-11T15:45:04Z', home: 'https://racoosta-byte.github.io/vuelux/admin/' };
+var ADMIN = { ver: '7.5.11', build: '0277b39b', at: '2026-11-11T21:24:04Z', home: 'https://racoosta-byte.github.io/vuelux/admin/' };
 var verTouched = false, verLatest = null, verBusy = false;
 ['keydown', 'input', 'paste'].forEach(function (ev) { try { document.addEventListener(ev, function () { verTouched = true; }, true); } catch (e) {} });
 function verBase() {          // onde está a página principal: a pasta desta página (se vem da Internet) ou o endereço do dono (se vem de um ficheiro)
