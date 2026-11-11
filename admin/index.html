@@ -149,7 +149,7 @@ tr.cl{cursor:pointer}tr.cl:hover td{background:var(--surf2)}tr.cl.sel td{backgro
           <div class="f"><label for="d-note">Mensagem que aparece no ecrã do cliente (opcional)</label><input type="text" id="d-note" maxlength="200" placeholder="Ex.: Fatura de novembro em atraso"></div>
           <label style="display:flex;gap:6px;align-items:center;margin:0 0 10px;align-self:flex-end"><input type="checkbox" id="d-rev"> <b class="danger">Suspender o serviço deste cliente</b></label>
         </div>
-        <table id="t-dev" class="hide"><thead><tr><th>ID do PC</th><th>Nome</th><th>Desde</th><th>Visto</th><th></th></tr></thead><tbody></tbody></table>
+        <table id="t-dev" class="hide"><thead><tr><th>ID do PC</th><th>Nome</th><th>Desde</th><th>Visto</th><th>Versão no PC</th><th></th></tr></thead><tbody></tbody></table>
         <p class="note" id="dev-note"></p>
         <div class="row">
           <div class="f"><label for="d-pcid">Autorizar um PC (o ID aparece no separador «🔑 Licença» do ecrã, ou no ecrã de pedido)</label><input type="text" id="d-pcid" placeholder="PC-XXXX-XXXX-XXXX" class="mono"></div>
@@ -958,24 +958,33 @@ $('d-force').onclick = function () { var c = cur(); if (!c) return; $('d-fsum').
 $('d-fno').onclick = function () { show('d-fbox', false); };
 $('d-fgo').onclick = function () { var c = cur(); if (!c) return; c.fu = (c.fu | 0) + 1; show('d-fbox', false); markDirty(true); saveAll(); };
 function liveFor(c, dev) { return (S.live || []).filter(function (d) { return d.cid === c.id && d.dev === dev; })[0]; }
+function devVerCell(c, id) {          // (7.5.5) a versão que o PC disse ao Centro de comando (precisa do instalador n.º 3) — ou porque é que não há
+    var r = (repCache(c).devs || {})[id], tg = targetVer(c);
+    if (!r) return h('td', null, h('span', { class: 'chip warn', text: 'sem aviso' }), ' ', h('span', { class: 'note', text: 'ainda não se anunciou: instalador antigo ou ecrã nunca aberto desde o instalador novo' }));
+    var behind = r.ver && tg && cmpv(r.ver, tg) < 0, silent = Date.now() - r.at > 36 * 3600000;
+    return h('td', null, h('b', { text: r.ver || '?' }), ' ', behind ? h('span', { class: 'chip warn', text: 'atrás da ' + tg }) : (r.ver && tg ? h('span', { class: 'chip ok', text: 'em dia' }) : null),
+        (r.sh | 0) < SHELL_NOW ? h('div', null, h('span', { class: (r.sh | 0) < 2 ? 'chip bad' : 'chip warn', text: 'instalador ' + (r.sh || 1) + ' (há o ' + SHELL_NOW + ')' })) : null,
+        silent ? h('div', null, h('span', { class: 'chip warn', text: 'sem sinal há ' + Math.round((Date.now() - r.at) / 3600000) + ' h' })) : h('div', { class: 'note', text: 'avisou ' + ago(r.at) }));
+}
 function renderDevices(c) {
     var tb = $('t-dev').tBodies[0]; tb.innerHTML = '';
     var max = +c.max || 0, pend = (S.live || []).filter(function (d) { return d.cid === c.id && !d.ok; });
     c.devices.forEach(function (d) {
         var lv = liveFor(c, d.id), tr = h('tr');
-        tr.append(h('td', { text: d.id, class: 'mono' }), h('td', { text: d.name || '' }), h('td', { text: d.since || '' }), h('td', { text: lv && lv.last ? ago(lv.last) : '—' }));
+        tr.append(h('td', { text: d.id, class: 'mono' }), h('td', { text: d.name || '' }), h('td', { text: d.since || '' }), h('td', { text: lv && lv.last ? ago(lv.last) : '—' }), devVerCell(c, d.id));
         tr.append(h('td', null, h('button', { class: 'sm danger', text: 'Retirar', onclick: function () { removeDevice(c, d.id); } })));
         tb.append(tr);
     });
     pend.forEach(function (d) {
         var tr = h('tr');
-        tr.append(h('td', { text: d.dev, class: 'mono' }), h('td', { text: (d.nm || '') + ' (à espera)' }), h('td', { text: '' }), h('td', { text: d.last ? ago(d.last) : '—' }));
+        tr.append(h('td', { text: d.dev, class: 'mono' }), h('td', { text: (d.nm || '') + ' (à espera)' }), h('td', { text: '' }), h('td', { text: d.last ? ago(d.last) : '—' }), devVerCell(c, d.dev));
         tr.append(h('td', null, h('button', { class: 'sm', text: 'Autorizar', onclick: function () { authorise(c, d.dev, d.nm); } })));
         tb.append(tr);
     });
     show('t-dev', c.devices.length + pend.length > 0);
     $('dev-note').textContent = max === 0 ? 'Sem limite: qualquer PC com a licença funciona; esta lista não é usada. Põe um número em «Máximo de PCs» para controlar.'
         : (c.devices.length >= max ? 'Limite atingido (' + c.devices.length + ' / ' + max + '): um PC novo fica bloqueado até libertares um lugar («Retirar») ou subires o limite.' : c.devices.length + ' de ' + max + ' PCs autorizados.');
+    if (c.devices.length) $('dev-note').textContent += ' «Versão no PC» = o que cada PC disse ao Centro de comando (precisa do instalador n.º ' + SHELL_NOW + '; toca em «🔄 Atualizar» mais abaixo para ler os avisos). «sem aviso» = esse PC ainda tem o instalador antigo (reinstala-o no Tampermonkey; a licença mantém-se) ou ainda não foi aberto.';
 }
 // ---- (7.5.0) PCs que se anunciam: a versão em uso de cada PC (avisos cifrados no ntfy.sh) e «Forçar neste PC»
 var REP_BASE = 'https://ntfy.sh', REP_MAX = 200, SHELL_NOW = 3;          // SHELL_NOW: o n.º do instalador que esta página gera
@@ -1038,8 +1047,8 @@ function repReload(c, soft) {
     if (!c) return Promise.resolve();
     var cached = repCache(c); if (soft && cached.at && Date.now() - cached.at < 90000) { renderReps(c); return Promise.resolve(); }
     $('rp-st').textContent = 'A ler…'; err('rp-err', '');
-    return repFetch(c).then(function () { if (S.sel === c.id) { renderReps(c); $('rp-st').textContent = 'atualizado agora'; } })
-        .catch(function (e) { if (S.sel === c.id) { renderReps(c); $('rp-st').textContent = ''; err('rp-err', '✗ Não consegui ler os avisos dos PCs: ' + (e && e.message || e) + (Object.keys(cached.devs || {}).length ? ' (a lista mostra o que já se sabia)' : '')); } });
+    return repFetch(c).then(function () { if (S.sel === c.id) { renderReps(c); renderDevices(c); $('rp-st').textContent = 'atualizado agora'; } })
+        .catch(function (e) { if (S.sel === c.id) { renderReps(c); renderDevices(c); $('rp-st').textContent = ''; err('rp-err', '✗ Não consegui ler os avisos dos PCs: ' + (e && e.message || e) + (Object.keys(cached.devs || {}).length ? ' (a lista mostra o que já se sabia)' : '')); } });
 }
 function forcePc(c, dev) {
     var r = (repCache(c).devs || {})[dev] || {}, tg = targetVer(c), nm = r.nm || ((c.devices || []).filter(function (d) { return d.id === dev; })[0] || {}).name || dev;
@@ -1520,7 +1529,7 @@ $('v-go').onclick = function () {
     });
 };
 // ---------------------------------------------------------------- versão desta página (7.5.5+): diz qual é, se é a última publicada, e leva à última
-var ADMIN = { ver: '7.5.5', build: 'eda47c2a', at: '2026-11-11T10:48:18Z', home: 'https://racoosta-byte.github.io/vuelux/admin/' };
+var ADMIN = { ver: '7.5.5', build: 'a6057fac', at: '2026-11-11T11:01:04Z', home: 'https://racoosta-byte.github.io/vuelux/admin/' };
 var verTouched = false, verLatest = null, verBusy = false;
 ['keydown', 'input', 'paste'].forEach(function (ev) { try { document.addEventListener(ev, function () { verTouched = true; }, true); } catch (e) {} });
 function verBase() {          // onde está a página principal: a pasta desta página (se vem da Internet) ou o endereço do dono (se vem de um ficheiro)
