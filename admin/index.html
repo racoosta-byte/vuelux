@@ -50,12 +50,19 @@ tr.cl{cursor:pointer}tr.cl:hover td{background:var(--surf2)}tr.cl.sel td{backgro
 .tbl-h td.acts{white-space:normal}.tbl-h td.acts button{margin:2px 4px 2px 0}
 @media (max-width:640px){.tbl-h th:nth-child(1),.tbl-h td:nth-child(1){display:table-cell}.tbl-h th:nth-child(3),.tbl-h td:nth-child(3){display:none}}
 .loglist{margin:4px 0 0;padding-left:18px;font-size:13px;color:var(--mut)}.loglist li{margin:2px 0}
+.verrow{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.verrow b{font-weight:700}.verbtns{display:flex;gap:8px;flex-wrap:wrap}.verbtns button{min-height:36px;padding:6px 12px}#ver-box{margin:10px 0 14px;background:var(--surf);border:1px solid var(--bd)}#ver-box.ok{background:var(--ok-bg);border-color:transparent}#ver-box.warn{background:var(--warn-bg);border-color:transparent}
 </style>
 </head>
 <body>
 <main>
 <h1>🛰 VueLux · Centro de comando</h1>
 <p class="sub">Clientes, limite de PCs, suspensão e publicação de versões. Tudo corre <b>neste navegador</b>: a base de clientes fica cifrada no teu repositório privado e só tu a abres (com a frase-passe).</p>
+<div class="box" id="ver-box" role="status" aria-live="polite">
+  <div class="verrow"><span id="ver-txt">A verificar a versão…</span>
+    <span class="verbtns"><button type="button" class="pri hide" id="ver-go">⬆ Ir para a última</button><button type="button" id="ver-chk">↻ Verificar</button></span></div>
+  <div class="note" id="ver-sub"></div>
+</div>
+
 
 <!-- ============ ENTRADA ============ -->
 <section class="card lock" id="c-lock">
@@ -1480,6 +1487,47 @@ $('v-go').onclick = function () {
         o.classList.add(ok ? 'ok' : 'bad'); o.textContent = ''; lines.forEach(function (l, i) { if (i) o.append(document.createElement('br')); o.append(document.createTextNode(l)); });
     });
 };
+// ---------------------------------------------------------------- versão desta página (7.5.5+): diz qual é, se é a última publicada, e leva à última
+var ADMIN = { ver: '7.5.5', build: '1535af52', at: '2026-11-11T10:38:17Z', home: 'https://racoosta-byte.github.io/vuelux/admin/' };
+var verTouched = false, verLatest = null, verBusy = false;
+['keydown', 'input', 'paste'].forEach(function (ev) { try { document.addEventListener(ev, function () { verTouched = true; }, true); } catch (e) {} });
+function verBase() {          // onde está a página principal: a pasta desta página (se vem da Internet) ou o endereço do dono (se vem de um ficheiro)
+    if (/^https?:$/.test(location.protocol)) return location.origin + location.pathname.replace(/[^\/]*$/, '');
+    var c = S.cfg && S.cfg.owner && S.cfg.pub ? 'https://' + S.cfg.owner + '.github.io/' + S.cfg.pub + '/admin/' : '';
+    return c || ADMIN.home;
+}
+function verHere() { return /^https?:$/.test(location.protocol) && verBase() === location.origin + location.pathname.replace(/[^\/]*$/, ''); }
+function verNice(iso) { var d = new Date(iso); return isNaN(d) ? '' : d.toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' }); }
+function verShow(kind, txt, sub, go) {
+    var box = $('ver-box'); box.className = 'box' + (kind ? ' ' + kind : '');
+    $('ver-txt').textContent = ''; var parts = [].concat(txt);
+    parts.forEach(function (x) { $('ver-txt').append(typeof x === 'string' ? document.createTextNode(x) : x); });
+    $('ver-sub').textContent = sub || ''; $('ver-go').classList.toggle('hide', !go);
+}
+function verCheck(auto) {
+    if (verBusy) return Promise.resolve(); verBusy = true;
+    var me = ADMIN.ver + ' · ' + verNice(ADMIN.at) + ' · ' + ADMIN.build.slice(0, 6), base = verBase();
+    var mine = function (b) { var e = document.createElement('b'); e.textContent = b; return e; };
+    $('ver-chk').disabled = true;
+    return fetch(base + 'versao.json?t=' + Date.now(), { cache: 'no-store', credentials: 'omit' }).then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); }).then(function (v) {
+        if (!v || !/^[0-9][0-9.]{0,15}$/.test(String(v.ver)) || !/^[0-9a-f]{8}$/.test(String(v.build)) || isNaN(Date.parse(v.at))) throw new Error('versao.json inválido');
+        verLatest = { ver: v.ver, build: v.build, at: v.at };
+        if (v.build === ADMIN.build) { verShow('ok', ['✓ Centro de comando ', mine(ADMIN.ver), ' — é a última versão.'], 'Esta página: ' + me + '. Verificado agora.', false); return; }
+        if (Date.parse(v.at) > Date.parse(ADMIN.at)) {
+            verShow('warn', ['⚠ Esta é a ', mine(ADMIN.ver), ' e já há a ', mine(v.ver), '.'], 'Esta página: ' + me + ' · a última: ' + v.ver + ' · ' + verNice(v.at) + ' · ' + v.build.slice(0, 6) + (verHere() ? '' : ' · abre a página principal (volta a entrar com o token se for a primeira vez nela)'), true);
+            var tried = ''; try { tried = sessionStorage.getItem('vlad-go') || ''; } catch (e) {}
+            if (auto && verHere() && !verTouched && tried !== v.build) { try { sessionStorage.setItem('vlad-go', v.build); } catch (e) {} location.replace(base + '?v=' + v.build); }
+            return;
+        }
+        verShow('', ['Centro de comando ', mine(ADMIN.ver), ' — esta cópia é mais nova que a publicada (', mine(v.ver), ').'], 'Esta página: ' + me + ' · a publicada: ' + v.ver + ' · ' + verNice(v.at) + '. Ainda não foi enviada para o GitHub.', false);
+    }).catch(function () {
+        verLatest = null; verShow('', ['Centro de comando ', mine(ADMIN.ver)], 'Esta página: ' + me + '. Não consegui ver se há versão mais nova (sem Internet, ou o GitHub ainda não mostra a página).', false);
+    }).then(function () { verBusy = false; $('ver-chk').disabled = false; });
+}
+$('ver-chk').onclick = function () { verCheck(false); };
+$('ver-go').onclick = function () { var b = verBase(); location.href = b + '?v=' + (verLatest ? verLatest.build : Date.now()); };
+verShow('', ['Centro de comando ', Object.assign(document.createElement('b'), { textContent: ADMIN.ver })], 'Esta página: ' + ADMIN.ver + ' · ' + verNice(ADMIN.at) + ' · ' + ADMIN.build.slice(0, 6), false);
+verCheck(true); setInterval(function () { verCheck(false); }, 30 * 60000);
 initLock();
 window.__vlad = { S: S, saveAll: saveAll };
 })();
