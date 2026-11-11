@@ -92,6 +92,7 @@ tr.cl{cursor:pointer}tr.cl:hover td{background:var(--surf2)}tr.cl.sel td{backgro
   </div>
   <div class="row"><button id="lk-go" class="pri">Entrar</button><button id="lk-forget" class="hide">Esquecer este navegador</button><button id="lk-local">Trabalhar só com um ficheiro (sem GitHub)</button></div>
   <div class="box bad hide" id="lk-err"></div>
+  <div class="box bad hide" id="lk-guard" role="alert"></div>
   <div class="box hide" id="lk-info"></div>
   <p class="note" id="lk-help">A frase-passe cifra a base de clientes (que tem a chave privada de assinatura) e o token. Nada disto sai do teu navegador em claro.</p>
 </section>
@@ -106,6 +107,11 @@ tr.cl{cursor:pointer}tr.cl:hover td{background:var(--surf2)}tr.cl.sel td{backgro
 
 <!-- ============ APLICAÇÃO ============ -->
 <div id="app" class="hide">
+  <div class="box warn hide" id="sec-box" role="alert">
+    <div><b id="sec-t"></b></div>
+    <div class="note" id="sec-l" style="margin:4px 0 0"></div>
+    <div class="row" style="margin-top:8px"><button type="button" id="sec-ok">Percebi (limpar o aviso)</button></div>
+  </div>
   <div class="top">
     <div class="grow"><b id="t-conn">—</b><div class="note" id="t-sub" style="margin:2px 0 0"></div></div>
     <span id="t-dirty" class="dirty hide">● alterações por guardar</span>
@@ -779,6 +785,61 @@ function pollLive(path, ts) {          // confirma que o GitHub Pages já serve 
     })();
 }
 
+
+// ---------------------------------------------------------------- (7.5.8) proteção contra tentativas de entrada
+// Só conta as tentativas FEITAS NESTA PÁGINA, neste navegador: quem descarregar o ficheiro cifrado e tentar por fora não passa por aqui (aí vale a frase-passe forte).
+//  1) atraso crescente depois de cada frase-passe (ou token) errada: 2 s, 4 s, 8 s, 16 s
+//  2) à 5.ª falha seguida, bloqueio temporário: 15 min, depois 30 min, 1 h, 2 h … (máx. 24 h); cada falha logo a seguir ao desbloqueio volta a bloquear, com o dobro
+//  3) aviso visível ao entrar, com as tentativas falhadas desde a última entrada (fica até carregares em «Percebi»)
+var GK = 'vlad-guard-v1', GMAX = 24 * 3600000, GLOG = 30;
+function gLoad() {
+    var g; try { g = JSON.parse(localStorage.getItem(GK) || 'null'); } catch (e) { g = null; }
+    g = g && typeof g === 'object' ? g : {};
+    g.f = Math.max(0, Math.min(1000, Number(g.f) || 0)); g.r = Math.max(0, Math.min(30, Number(g.r) || 0));
+    g.u = Number(g.u) || 0; g.log = Array.isArray(g.log) ? g.log.filter(function (x) { return x && isFinite(x.t); }).slice(-GLOG) : [];
+    return g;
+}
+function gSave(g) { try { localStorage.setItem(GK, JSON.stringify(g)); } catch (e) {} }
+function gLockMs(r) { return Math.min(GMAX, 15 * 60000 * Math.pow(2, Math.max(0, r - 1))); }
+function gWait(g) {          // milissegundos que faltam até se poder tentar de novo (0 = já pode)
+    var now = Date.now(), w = (g.u || 0) - now;
+    if (w > GMAX) { g.u = now + GMAX; gSave(g); w = GMAX; }          // relógio alterado para trás: nunca mais do que o máximo
+    return Math.max(0, w);
+}
+function gFail(why) {          // devolve o que mostrar
+    var g = gLoad(), now = Date.now(); g.f++; g.log.push({ t: now, w: why || 'pass' }); g.log = g.log.slice(-GLOG);
+    if (g.f >= 5) { g.r++; g.u = now + gLockMs(g.r); g.f = 4; g.locked = true; }
+    else g.u = now + 1000 * Math.pow(2, g.f);          // 1.ª falha 2 s, 2.ª 4 s, 3.ª 8 s, 4.ª 16 s
+    gSave(g); return g;
+}
+function gOk() { var g = gLoad(); g.f = 0; g.r = 0; g.u = 0; g.locked = false; gSave(g); return g; }
+function gFmt(ms) {
+    var s = Math.ceil(ms / 1000); if (s < 60) return s + ' s';
+    var m = Math.floor(s / 60), r = s % 60; if (m < 60) return m + ' min ' + (r < 10 ? '0' : '') + r + ' s';
+    var hh = Math.floor(m / 60); return hh + ' h ' + (m % 60) + ' min';
+}
+var gTimer = 0;
+function gPaint() {          // mostra a espera e liga/desliga o botão de entrar
+    var g = gLoad(), w = gWait(g), box = $('lk-guard'), btn = $('lk-go');
+    clearTimeout(gTimer);
+    if (w > 0) {
+        box.textContent = (g.locked ? '🔒 Demasiadas tentativas falhadas. Entrada bloqueada durante ' : '⏳ Frase-passe errada. Podes tentar de novo daqui a ') + gFmt(w) + '.';
+        box.classList.remove('hide'); btn.disabled = true; $('lk-pass').disabled = true;
+        gTimer = setTimeout(gPaint, w > 60000 ? 1000 : 250);
+    } else { box.classList.add('hide'); box.textContent = ''; if (!S.busy) btn.disabled = false; $('lk-pass').disabled = false; if (g.locked) { g.locked = false; gSave(g); } }
+}
+function gShowSec() {          // aviso dentro da página depois de entrar
+    var g = gLoad(), n = g.log.length, box = $('sec-box');
+    if (!n) { box.classList.add('hide'); return; }
+    var fm = function (t) { var d = new Date(t); return d.toLocaleDateString() + ' ' + d.toLocaleTimeString(); };
+    $('sec-t').textContent = '⚠ Houve ' + n + (n === 1 ? ' tentativa falhada' : ' tentativas falhadas') + ' de entrada neste navegador desde a última entrada.';
+    var rest = g.log.slice(-5).reverse().map(function (x) { return fm(x.t) + (x.w === 'tok' ? ' (token recusado)' : ''); }).join(' · ');
+    $('sec-l').textContent = 'Mais recentes: ' + rest + (n > 5 ? ' · …' : '') + '. Se não foste tu, muda já a frase-passe (Definições) e cria um token novo no GitHub.';
+    box.classList.remove('hide');
+}
+$('sec-ok').onclick = function () { var g = gLoad(); g.log = []; gSave(g); $('sec-box').classList.add('hide'); };
+function authErr(m, why) { var e = new Error(m); e.auth = why || 'pass'; return e; }
+
 // ---------------------------------------------------------------- entrada
 function lkErr(m) { err('lk-err', m); }
 function lkInfo(m) { var e = $('lk-info'); e.textContent = m || ''; e.className = 'box' + (m ? '' : ' hide'); }
@@ -788,6 +849,7 @@ function initLock() {
     show('lk-first', !known); show('lk-pass2r', !known); show('lk-forget', known);
     $('lk-title').textContent = known ? 'Entrar' : 'Ligar ao GitHub';
     $('lk-go').textContent = known ? 'Entrar' : 'Ligar';
+    gPaint();
     if (!known) {
         var m = /^([a-z0-9-]+)\.github\.io$/i.exec(location.hostname), pth = location.pathname.split('/').filter(Boolean)[0];
         if (m) { $('lk-owner').value = m[1]; if (pth && pth.indexOf('.') < 0) $('lk-pub').value = pth; }
@@ -805,7 +867,7 @@ function goApp() {
 function afterPat() {          // com o token certo: procura a base no repositório privado
     return ghj('GET', '/repos/' + S.cfg.owner + '/' + S.cfg.data).then(function (r) {
         if (r.status === 404) throw new Error('O repositório privado «' + S.cfg.owner + '/' + S.cfg.data + '» não existe ou o token não tem acesso a ele.');
-        if (r.status === 401) throw new Error('O token não é aceite pelo GitHub (expirou ou está errado).');
+        if (r.status === 401) throw authErr('O token não é aceite pelo GitHub (expirou ou está errado).', 'tok');
         if (!r.ok) throw new Error(ghMsg(r));
         return ghj('GET', '/repos/' + S.cfg.owner + '/' + S.cfg.pub);
     }).then(function (r) {
@@ -816,7 +878,7 @@ function afterPat() {          // com o token certo: procura a base no repositó
     }).then(function (f) {
         if (f.none) { S.dbSha = null; show('c-lock', false); show('c-nodb', true); return null; }
         return openSealed(S.pass, f.sealed).then(function (txt) {
-            if (txt === null) throw new Error('Frase-passe errada (ou a base foi cifrada com outra).');
+            if (txt === null) throw authErr('Frase-passe errada (ou a base foi cifrada com outra).');
             var o = JSON.parse(txt); if (!validDb(o)) throw new Error('A base guardada no GitHub não é válida.');
             S.db = o; S.dbSha = f.sha; S.salt = f.sealed.s; goApp();
         });
@@ -824,12 +886,13 @@ function afterPat() {          // com o token certo: procura a base no repositó
 }
 $('lk-go').onclick = function () {
     lkErr(''); lkInfo('');
+    if (gWait(gLoad()) > 0) { gPaint(); return; }          // (7.5.8) em espera ou bloqueado
     var known = !!(S.cfg.pat && S.cfg.owner), pass = $('lk-pass').value;
     if (S.busy) return; S.busy = true; $('lk-go').disabled = true;
     var p;
     if (known) {
         p = openSealed(pass, S.cfg.pat).then(function (pat) {
-            if (pat === null) throw new Error('Frase-passe errada.');
+            if (pat === null) throw authErr('Frase-passe errada.');
             S.pat = pat; S.pass = pass; S.salt = S.cfg.pat.s; S.br = S.cfg.branch || 'main';
             if (S.cfg.adm) return openSealed(pass, S.cfg.adm).then(function (a) { S.adm = a; });
         }).then(afterPat);
@@ -843,7 +906,10 @@ $('lk-go').onclick = function () {
             return sealWith(S.pass, S.salt, S.pat).then(function (sl) { S.cfg.pat = sl; S.cfg.branch = S.br; cfgSave(); });
         });
     }
-    p.catch(function (e) { lkErr(e && e.message || String(e)); }).then(function () { S.busy = false; $('lk-go').disabled = false; renderTop(); });
+    p.then(function () { gOk(); gShowSec(); $('lk-pass').value = ''; }, function (e) {
+        if (e && e.auth) { gFail(e.auth); S.pass = null; S.pat = null; S.adm = null; $('lk-pass').value = ''; }          // falha de autenticação conta; erros de rede ou de repositório não
+        lkErr(e && e.message || String(e));
+    }).then(function () { S.busy = false; $('lk-go').disabled = false; gPaint(); renderTop(); });
 };
 $('lk-pass').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('lk-go').click(); });
 $('lk-forget').onclick = function () { if (!confirm('Esquecer o token e a ligação neste navegador? A base continua no GitHub.')) return; try { localStorage.removeItem(LSK); } catch (e) {} S.cfg = {}; initLock(); };
@@ -1529,7 +1595,7 @@ $('v-go').onclick = function () {
     });
 };
 // ---------------------------------------------------------------- versão desta página (7.5.5+): diz qual é, se é a última publicada, e leva à última
-var ADMIN = { ver: '7.5.5', build: 'a6057fac', at: '2026-11-11T11:01:04Z', home: 'https://racoosta-byte.github.io/vuelux/admin/' };
+var ADMIN = { ver: '7.5.8', build: 'c7f97057', at: '2026-11-11T15:45:04Z', home: 'https://racoosta-byte.github.io/vuelux/admin/' };
 var verTouched = false, verLatest = null, verBusy = false;
 ['keydown', 'input', 'paste'].forEach(function (ev) { try { document.addEventListener(ev, function () { verTouched = true; }, true); } catch (e) {} });
 function verBase() {          // onde está a página principal: a pasta desta página (se vem da Internet) ou o endereço do dono (se vem de um ficheiro)
