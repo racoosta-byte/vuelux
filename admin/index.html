@@ -51,6 +51,11 @@ tr.cl{cursor:pointer}tr.cl:hover td{background:var(--surf2)}tr.cl.sel td{backgro
 @media (max-width:640px){.tbl-h th:nth-child(1),.tbl-h td:nth-child(1){display:table-cell}.tbl-h th:nth-child(3),.tbl-h td:nth-child(3){display:none}}
 .loglist{margin:4px 0 0;padding-left:18px;font-size:13px;color:var(--mut)}.loglist li{margin:2px 0}
 .verrow{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.verrow b{font-weight:700}.verbtns{display:flex;gap:8px;flex-wrap:wrap}.verbtns button{min-height:36px;padding:6px 12px}#ver-box{margin:10px 0 14px;background:var(--surf);border:1px solid var(--bd)}#ver-box.ok{background:var(--ok-bg);border-color:transparent}#ver-box.warn{background:var(--warn-bg);border-color:transparent}
+.toast{position:fixed;left:12px;right:12px;bottom:12px;z-index:60;display:flex;gap:10px;align-items:flex-start;justify-content:space-between;max-width:760px;margin:0 auto;padding:12px 14px;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.35);font-size:14.5px;line-height:1.4;background:var(--surf);color:var(--fg);border:1px solid var(--bd)}
+.toast.ok{background:var(--ok-bg);color:var(--ok)}.toast.bad{background:var(--bad-bg);color:var(--bad)}.toast.warn{background:var(--warn-bg);color:var(--warn)}
+.toast button{min-height:32px;padding:2px 10px;background:transparent;border:0;color:inherit;font-size:16px}
+.ask{position:fixed;left:12px;right:12px;bottom:12px;z-index:70;max-width:640px;margin:0 auto;padding:16px;border-radius:14px;background:var(--surf);color:var(--fg);border:2px solid var(--pri);box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.ask-q{white-space:pre-wrap;font-size:14.5px;line-height:1.45;max-height:55vh;overflow:auto;margin:0 0 12px}.ask-b{display:flex;gap:10px;justify-content:flex-end}.ask-b button{min-height:44px;min-width:110px}
 </style>
 </head>
 <body>
@@ -348,6 +353,8 @@ tr.cl{cursor:pointer}tr.cl:hover td{background:var(--surf2)}tr.cl.sel td{backgro
       <div class="box hide" id="v-out"></div>
     </section>
   </div>
+<div id="t-toast" class="toast hide" role="alert"><span id="t-toast-t"></span><button type="button" id="t-toast-x" aria-label="Fechar">✕</button></div>
+<div id="t-ask" class="ask hide" role="alertdialog" aria-modal="true"><div class="ask-q" id="t-ask-q"></div><div class="ask-b"><button type="button" id="t-ask-no">Cancelar</button><button type="button" class="pri" id="t-ask-yes">Confirmar</button></div></div>
 </main>
 
 <script>
@@ -700,7 +707,31 @@ function wkPush() {
 }
 
 // ---------------------------------------------------------------- mensagens e botão principal
-function msg(text, kind) { var e = $('t-msg'); e.textContent = text || ''; e.className = 'box ' + (kind || '') + (text ? '' : ' hide'); }
+var toastT = 0;
+function msg(text, kind) {
+    var e = $('t-msg'); e.textContent = text || ''; e.className = 'box ' + (kind || '') + (text ? '' : ' hide');
+    // (7.5.5) o resultado também aparece num aviso fixo em baixo: a mensagem de cima fica fora do ecrã quando se está a meio da página
+    var t = $('t-toast'); clearTimeout(toastT);
+    if (!text) { t.classList.add('hide'); return; }
+    $('t-toast-t').textContent = text; t.className = 'toast ' + (kind || '');
+    if (kind !== 'bad') toastT = setTimeout(function () { t.classList.add('hide'); }, kind === 'ok' ? 12000 : 25000);
+}
+$('t-toast-x').onclick = function () { $('t-toast').classList.add('hide'); };
+// (7.5.5) perguntas «Tens a certeza?»: se o navegador (telemóvel) bloquear a janela do sistema ela responde «não» logo, sem ninguém ver nada e o botão «não faz nada».
+// Aí a pergunta aparece DENTRO da página e, ao confirmar, repete-se o toque com o «sim» já dado.
+var nativeConfirm = window.confirm.bind(window), askGrant = null, lastTap = null;
+document.addEventListener('click', function (ev) { var b = ev.target && ev.target.closest ? ev.target.closest('button,input') : null; if (b && !b.closest('#t-ask')) lastTap = b; }, true);
+window.confirm = function (q) {
+    q = String(q); if (askGrant === q) { askGrant = null; return true; }
+    var t0 = Date.now(), ok = false; try { ok = (window.__vlNativeConfirm || nativeConfirm)(q); } catch (e) { ok = false; }
+    if (!ok && Date.now() - t0 < 150 && lastTap) askInline(q, lastTap);
+    return ok;
+};
+function askInline(q, btn) {
+    $('t-ask-q').textContent = q; $('t-ask').classList.remove('hide');
+    $('t-ask-no').onclick = function () { $('t-ask').classList.add('hide'); };
+    $('t-ask-yes').onclick = function () { $('t-ask').classList.add('hide'); askGrant = q; setTimeout(function () { try { btn.click(); } catch (e) {} askGrant = null; }, 0); };
+}
 function markDirty(v) { S.dirty = v !== false; renderTop(); }
 window.addEventListener('beforeunload', function (e) { if (S.dirty) { e.preventDefault(); e.returnValue = ''; } });
 function renderTop() {
@@ -1229,7 +1260,8 @@ $('dg-go').onclick = function () {
 };
 $('v-reload').onclick = loadVersions;
 function manifestEdit(fn, label, opt) {
-    if (S.busy) return Promise.resolve(); busy(true); opt = opt || {};
+    if (S.busy) { msg('Ainda estou a trabalhar numa operação anterior. Espera uns segundos e volta a tocar (ou recarrega a página).', 'warn'); return Promise.resolve(); }
+    busy(true); opt = opt || {}; msg('⏳ ' + label + '… (a ler o GitHub, assinar e enviar)', 'warn');
     var files = [];
     return Promise.all([readMan(), listPub('app')]).then(function (r) {
         var man = r[0], m = opt.master ? man.master : man.m; if (!m) { if (opt.soft) return null; throw new Error('Sem manifesto publicado.'); }
@@ -1488,7 +1520,7 @@ $('v-go').onclick = function () {
     });
 };
 // ---------------------------------------------------------------- versão desta página (7.5.5+): diz qual é, se é a última publicada, e leva à última
-var ADMIN = { ver: '7.5.5', build: '1535af52', at: '2026-11-11T10:38:17Z', home: 'https://racoosta-byte.github.io/vuelux/admin/' };
+var ADMIN = { ver: '7.5.5', build: 'eda47c2a', at: '2026-11-11T10:48:18Z', home: 'https://racoosta-byte.github.io/vuelux/admin/' };
 var verTouched = false, verLatest = null, verBusy = false;
 ['keydown', 'input', 'paste'].forEach(function (ev) { try { document.addEventListener(ev, function () { verTouched = true; }, true); } catch (e) {} });
 function verBase() {          // onde está a página principal: a pasta desta página (se vem da Internet) ou o endereço do dono (se vem de um ficheiro)
